@@ -2,23 +2,24 @@ import os
 import re
 import urlparse
 
-LINK_CACHE = {}
+import config
 
 
-def parse_uuid_from_resource_uri(uri):
-    terms = uri.strip("/").split("/")
-    if len(terms) < 2:
-        return ""
-    return terms[-1]
+def parse_extra_bind_settings(extra_bind_settings):
+    bind_dict = {}
+    if extra_bind_settings:
+        settings = re.split(r'(?<!\\),', extra_bind_settings)
+        for setting in settings:
+            term = setting.split(":", 1)
+            if len(term) == 2:
+                bind_dict[term[0].strip().replace("\,", ",")] = term[1].strip().replace("\,", ",")
+    return bind_dict
 
 
 class Specs(object):
-    service_alias_match = re.compile(r"_PORT_\d{1,5}_(TCP|UDP)$")
-    detailed_service_alias_match = re.compile(r"_\d+_PORT_\d{1,5}_(TCP|UDP)$")
-
     def __init__(self, links=None):
         self.envvars = self._parse_envvars(links)
-        self.service_aliases = self._parser_service_aliases(links)
+        self.service_aliases = self._parse_service_aliases(links)
         self.details = self._parse_details()
         self.routes = self._parse_routes(links)
         self.vhosts = self._parse_vhosts()
@@ -50,7 +51,8 @@ class Specs(object):
                     vhosts.append(vhost)
             self.vhosts = vhosts
 
-    def _parse_envvars(self, links):
+    @staticmethod
+    def _parse_envvars(links):
         envvars = {}
         if links:
             for link in links.itervalues():
@@ -59,7 +61,7 @@ class Specs(object):
             envvars = os.environ
         return envvars
 
-    def _parser_service_aliases(self, links):
+    def _parse_service_aliases(self, links):
         service_aliases = []
         if links:
             for link in links.itervalues():
@@ -68,9 +70,9 @@ class Specs(object):
         else:
 
             for key, value in self.envvars.iteritems():
-                match = Specs.service_alias_match.search(key)
+                match = config.SERVICE_ALIAS_MATCH.search(key)
                 if match:
-                    detailed_match = Specs.detailed_service_alias_match.search(key)
+                    detailed_match = config.DETAILED_SERVICE_ALIAS_MATCH.search(key)
                     if detailed_match:
                         alias = key[:detailed_match.start()]
                     else:
@@ -96,12 +98,6 @@ class Specs(object):
         return RouteParser.parse(self.details, links)
 
     def _parse_vhosts(self):
-        # copy virtual_host to vritual_host_str, and then parse virtual_host
-        # 'http://a.com:8080, https://b.com, c.com'  = >
-        #   [{'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '8080'},
-        #    {'path': '', 'host': 'b.com', 'scheme': 'https', 'port': '443'},
-        #    {'path': '', 'host': 'c.com', 'scheme': 'http', 'port': '80'}]
-        parsed_virtual_host = []
         for service_alias, attr in self.details.iteritems():
             virtual_host_str = attr["virtual_host_str"] = attr["virtual_host"]
 
@@ -150,31 +146,21 @@ class Specs(object):
     def get_default_ssl_cert(self):
         if not hasattr(self, "default_ssl_cert"):
             self.default_ssl_cert = filter(lambda x: x,
-                                           [attr["default_ssl_cert"] for attr in self.details.itervalues()])
+                                           [attr["default_ssl_cert"] for attr in self.details.itervalues() if
+                                            "default_ssl_cert" in attr])
         return self.default_ssl_cert
 
     def get_ssl_cert(self):
         if not hasattr(self, "ssl_cert"):
-            self.ssl_cert = filter(lambda x: x, [attr["ssl_cert"] for attr in self.details.itervalues()])
+            self.ssl_cert = filter(lambda x: x, [attr["ssl_cert"] for attr in self.details.itervalues() if
+                                                 "ssl_cert" in attr])
         return self.ssl_cert
-
-    def get_force_ssl(self):
-        if not hasattr(self, "force_ssl"):
-            self.force_ssl = []
-            for service_alias, attr in self.details.iteritems():
-                if attr["force_ssl"]:
-                    self.force_ssl.append(service_alias)
-        return self.force_ssl
 
     def get_service_aliases(self):
         return self.service_aliases
 
 
 class RouteParser(object):
-    backend_match = re.compile(r"(?P<proto>tcp|udp):\/\/(?P<addr>[^:]*):(?P<port>.*)")
-    service_alias_match = re.compile(r"_PORT_\d{1,5}_(TCP|UDP)$")
-    detailed_service_alias_match = re.compile(r"_\d+_PORT_\d{1,5}_(TCP|UDP)$")
-
     @staticmethod
     def parse(details, links=None):
         if links:
@@ -184,22 +170,12 @@ class RouteParser(object):
 
     @staticmethod
     def parse_remote_routes(details, links):
-        # Input:  details = {'HELLO_1': {'exclude_ports': ['3306']}}
-        #         links   = {'/api/v1/container/a155cb3a-d6b0-4472-9863-4b29fd84e717/':{
-        #                       'endpoints': {'80/tcp': 'tcp://10.7.0.3:80'},
-        # 		                'container_envvars': {'HW-1_ENV_VIRTUALHOST': '*'},
-        # 		                'service_name': 'HW',
-        # 		                'container_uri': '/api/v1/container/a155cb3a-d6b0-4472-9863-4b29fd84e717/',
-        # 		                'service_uri': '/api/v1/service/35e6c3fe-8eb9-4c18-a094-234b6fa65578/',
-        # 		                'container_name': 'HW_1'}
-        #                   }
-        # Output: links   = {u'HW': [{'container_name': u'HW_1', 'proto': u'tcp', 'port': u'80', 'addr': u'10.7.0.3'}]}
         routes = {}
         for link in links.itervalues():
             container_name = link["container_name"]
             service_alias = link["service_name"]
             for endpoint in link["endpoints"].itervalues():
-                route = RouteParser.backend_match.match(endpoint).groupdict()
+                route = config.BACKEND_MATCH.match(endpoint).groupdict()
                 route.update({"container_name": container_name})
                 exclude_ports = details.get(service_alias, {}).get("exclude_ports")
                 if not exclude_ports or (exclude_ports and route["port"] not in exclude_ports):
@@ -211,21 +187,13 @@ class RouteParser(object):
 
     @staticmethod
     def parse_local_routes(details, envvars):
-        # Input:  details = {'HELLO_1': {'exclude_ports': [3306]}}
-        #         envvars = {'HELLO_1_PORT_80_TCP': 'tcp://172.17.0.30:80',
-        #                    'HELLO_2_PORT_80_TCP': 'tcp://172.17.0.31:80',
-        #                    'HELLO_1_PORT_3306_TCP': 'tcp://172.17.0.30:3306',
-        #                    'HELLO_2_PORT_3306_TCP': 'tcp://172.17.0.31:3306'}
-        # Output: routes  = {'HELLO_2': [{'proto': 'tcp', 'port': '3306', 'addr': '172.17.0.31'},
-        #                                {'proto': 'tcp', 'port': '80', 'addr': '172.17.0.31'}],
-        #                    'HELLO_1': [{'proto': 'tcp', 'port': '80', 'addr': '172.17.0.30'}]}
         routes = {}
         for key, value in envvars.iteritems():
             if not key or not value:
                 continue
-            match = RouteParser.service_alias_match.search(key)
+            match = config.SERVICE_ALIAS_MATCH.search(key)
             if match:
-                detailed_match = RouteParser.detailed_service_alias_match.search(key)
+                detailed_match = config.DETAILED_SERVICE_ALIAS_MATCH.search(key)
                 if detailed_match:
                     service_alias = key[:detailed_match.start()]
                 else:
@@ -233,9 +201,9 @@ class RouteParser(object):
 
                 container_name = key[:match.start()]
 
-                be_match = RouteParser.backend_match.match(value)
+                be_match = config.BACKEND_MATCH.match(value)
                 if be_match:
-                    route = RouteParser.backend_match.match(value).groupdict()
+                    route = config.BACKEND_MATCH.match(value).groupdict()
 
                     route.update({"container_name": container_name})
                     exclude_ports = details.get(service_alias, {}).get("exclude_ports")
@@ -254,9 +222,6 @@ class RouteParser(object):
 
 
 class EnvParser(object):
-    service_alias_match = re.compile(r"_ENV_")
-    detailed_service_alias_match = re.compile(r"_\d+_ENV")
-
     def __init__(self, service_aliases):
         self.service_aliases = service_aliases
         self.details = {}
@@ -264,9 +229,9 @@ class EnvParser(object):
     def parse(self, key, value):
         for method in self.__class__.__dict__:
             if method.startswith("parse_"):
-                match = EnvParser.service_alias_match.search(key)
+                match = config.ENV_SERVICE_ALIAS_MATCH.search(key)
                 if match:
-                    detailed_match = EnvParser.detailed_service_alias_match.search(key)
+                    detailed_match = config.ENV_DETAILED_SERVICE_ALIAS_MATCH.search(key)
                     if detailed_match:
                         service_alias = key[:detailed_match.start()]
                     else:
@@ -330,7 +295,7 @@ class EnvParser(object):
 
     @staticmethod
     def parse_tcp_ports(value):
-        # '9000, 22/ssl' => ['9000', '22/ssl']
+        # '9000, 22/ssl_bind_string' => ['9000', '22/ssl_bind_string']
         if value:
             return [p.strip() for p in value.strip().split(",") if p.strip()]
         return []

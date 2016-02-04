@@ -43,7 +43,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |env var|default|description|
 |:-----:|:-----:|:----------|
 |DEFAULT_SSL_CERT||Default ssl cert, a pem file content with private key followed by public certificate, '\n'(two chars) as the line separator. should be formatted as one line - see [SSL Termination](#ssl-termination)|
-|EXTRA_SSL_CERTS||List of extra certificate names separated by space, eg. `CERT1 CERT2 CERT3`. You also need to specify each certifcate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
+|EXTRA_SSL_CERTS||List of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certifcate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
 |BALANCE|roundrobin|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
 |MODE|http|mode of load balancing for HAProxy. Possible values include: `http`, `tcp`, `health`|
 |MAXCONN|4096|sets the maximum per-process number of concurrent connections.|
@@ -57,7 +57,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |HEALTH_CHECK|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
 |EXTRA_GLOBAL_SETTINGS|<empty>|comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
 |EXTRA_DEFAULT_SETTINGS|<empty>|comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
-|EXTRA_BIND_SETTINGS|<empty>|comma-separated string(<port>:<setting>) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible vaule: `443:accept-proxy, 80:name http`|
+|EXTRA_BIND_SETTINGS|<empty>|comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible vaule: `443:accept-proxy, 80:name http`|
 |HTTP_BASIC_AUTH|<empty>|a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|
 |CA_CERT|<empty>|CA cert for haproxy to verify the client. Use the same format as `DEFAULT_SSL_CERT`|
 |MONITOR_PORT|<empty>|the port number where monitor_uri should be added to. Use together with `MONTIOR_URI`. Possible value: `80`|
