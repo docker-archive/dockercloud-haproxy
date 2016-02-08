@@ -1,1 +1,1 @@
-python-dockercloud==1.0.0
+python-dockercloud==1.0.1
