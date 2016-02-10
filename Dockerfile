@@ -10,7 +10,7 @@ RUN echo 'deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main' >
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     echo '#!/bin/sh' > /reload.sh && \
-    echo 'kill -USR1 $(cat /tmp/tutum-haproxy.pid)' >> /reload.sh && \
+    echo 'kill -USR1 $(cat /tmp/dockercloud-haproxy.pid)' >> /reload.sh && \
     chmod +x /reload.sh
 
 COPY . haproxy-src/
