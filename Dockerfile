@@ -8,15 +8,12 @@ RUN echo 'deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main' >
     apt-get update && \
     apt-get install -y --no-install-recommends haproxy python-pip && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    echo '#!/bin/sh' > /reload.sh && \
-    echo 'kill -USR1 $(cat /tmp/dockercloud-haproxy.pid)' >> /reload.sh && \
-    chmod +x /reload.sh
+    rm -rf /var/lib/apt/lists/*
 
+COPY reload.sh /reload.sh
 COPY . haproxy-src/
 RUN cd /haproxy-src/ && \
     pip install .
-
 
 ENV RSYSLOG_DESTINATION=127.0.0.1 \
     MODE=http \
