@@ -4,8 +4,8 @@ set -e
 
 echo ======================== Unit Test ==========================
 python setup.py install
-python setup.py test
-
+pip install -r test-requirements.txt
+nosetests -v --with-coverage --cover-package haproxy
 
 if [ "$(uname -s)" != "Darwin" ]; then
     echo ==================== Integration Test =======================
