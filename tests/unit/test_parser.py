@@ -226,7 +226,6 @@ class EnvParserTestCase(unittest.TestCase):
         env.parse("HELLO_ENV_NOT_DEFINED", "n/a")
         self.assertTrue("not_defined" not in env.details["HELLO"])
 
-
         env.parse("HW_ENV_DEFAULT_SSL_CERT", "cert")
         self.assertTrue("HW" not in env.details)
         env.parse("HELLO_ENV_DEFAULT_SSL_CERT", "cert")
@@ -286,7 +285,3 @@ class EnvParserTestCase(unittest.TestCase):
 
         env.parse("HELLO_2_ENV_EXTRA_SETTINGS", "settings")
         self.assertEqual("settings", env.details["HELLO"]["extra_settings"])
-
-#     @staticmethod
-#     def parse_extra_settings(value):
-#         return value

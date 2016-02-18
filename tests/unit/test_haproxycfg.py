@@ -322,7 +322,7 @@ class HaproxyTestCase(unittest.TestCase):
                    {'container_name': 'HW_2', 'proto': 'http', 'port': '80', 'addr': '10.7.0.3'}]}
         mock_vhosts.return_value = [
             {'service_alias': 'HW', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80'}]
-        self.assertEqual(OrderedDict([('backend SERVICE_HW', ['BALANCE source',
+        self.assertEqual(OrderedDict([('backend SERVICE_HW', ['balance source',
                                                               'server HW_1 10.7.0.2:80 check',
                                                               'server HW_2 10.7.0.3:80 check'])]),
                          haproxy._config_backend_sections())
@@ -348,7 +348,7 @@ class HaproxyTestCase(unittest.TestCase):
             'HW': [{'container_name': 'HW_1', 'proto': 'http', 'port': '80', 'addr': '10.7.0.2'},
                    {'container_name': 'HW_2', 'proto': 'http', 'port': '80', 'addr': '10.7.0.3'}]}
         mock_vhosts.return_value = []
-        self.assertEqual(OrderedDict([('backend default_service', ['BALANCE source',
+        self.assertEqual(OrderedDict([('backend default_service', ['balance source',
                                                                    'server HW_1 10.7.0.2:80 check',
                                                                    'server HW_2 10.7.0.3:80 check'])]),
                          haproxy._config_backend_sections())

@@ -50,7 +50,7 @@ def get_websocket_setting(vhosts, service_alias):
     for v in vhosts:
         if service_alias == v["service_alias"]:
             if v["scheme"].lower() in ["ws", "wss"]:
-                websocket_setting.append("OPTION http-server-close")
+                websocket_setting.append("option http-server-close")
                 break
     return websocket_setting
 
@@ -76,7 +76,7 @@ def get_balance_setting(details, service_alias):
     setting = []
     balance = get_service_attribute(details, "balance", service_alias)
     if balance:
-        setting.append("BALANCE %s" % balance)
+        setting.append("balance %s" % balance)
     return setting
 
 
@@ -109,7 +109,7 @@ def get_http_check_setting(details, service_alias):
     setting = []
     http_check = get_service_attribute(details, "http_check", service_alias)
     if http_check:
-        setting.append("OPTION httpchk %s" % http_check)
+        setting.append("option httpchk %s" % http_check)
     return setting
 
 
@@ -135,7 +135,7 @@ def get_options_setting(details, service_alias):
     options = get_service_attribute(details, 'option', service_alias)
     if options:
         for option in options:
-            setting.append("OPTION %s" % option)
+            setting.append("option %s" % option)
     return setting
 
 

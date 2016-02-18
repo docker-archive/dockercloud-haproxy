@@ -69,9 +69,9 @@ class BackendHelperTestCase(unittest.TestCase):
                   {'service_alias': 'web-c', 'path': '', 'host': 'c.com', 'scheme': 'wss', 'port': '80'},
                   {'service_alias': 'web-c', 'path': '', 'host': 'c.com', 'scheme': 'https', 'port': '80'}]
 
-        self.assertEqual(['OPTION http-server-close'], get_websocket_setting(vhosts, 'web-a'))
-        self.assertEqual(['OPTION http-server-close'], get_websocket_setting(vhosts, 'web-b'))
-        self.assertEqual(['OPTION http-server-close'], get_websocket_setting(vhosts, 'web-c'))
+        self.assertEqual(['option http-server-close'], get_websocket_setting(vhosts, 'web-a'))
+        self.assertEqual(['option http-server-close'], get_websocket_setting(vhosts, 'web-b'))
+        self.assertEqual(['option http-server-close'], get_websocket_setting(vhosts, 'web-c'))
         self.assertEqual([], get_websocket_setting(vhosts, 'web-d'))
         self.assertEqual([], get_websocket_setting(vhosts, 'web-e'))
 
@@ -80,7 +80,7 @@ class BackendHelperTestCase(unittest.TestCase):
                    'web-b': {'balance': ''},
                    'web-c': {}}
 
-        self.assertEqual(["BALANCE balance_a"], get_balance_setting(details, 'web-a'))
+        self.assertEqual(["balance balance_a"], get_balance_setting(details, 'web-a'))
         self.assertEqual([], get_balance_setting(details, 'web-b'))
         self.assertEqual([], get_balance_setting(details, 'web-c'))
         self.assertEqual([], get_balance_setting(details, 'web-d'))
@@ -133,7 +133,7 @@ class BackendHelperTestCase(unittest.TestCase):
                    'web-b': {'http_check': ''},
                    'web-c': {}}
 
-        self.assertEqual(["OPTION httpchk check_a"], get_http_check_setting(details, 'web-a'))
+        self.assertEqual(["option httpchk check_a"], get_http_check_setting(details, 'web-a'))
         self.assertEqual([], get_http_check_setting(details, 'web-b'))
         self.assertEqual([], get_http_check_setting(details, 'web-c'))
         self.assertEqual([], get_http_check_setting(details, 'web-d'))
@@ -166,8 +166,8 @@ class BackendHelperTestCase(unittest.TestCase):
                    'web-c': {'option': []},
                    'web-d': {}}
 
-        self.assertEqual(["OPTION opt1", "OPTION opt2"], get_options_setting(details, 'web-a'))
-        self.assertEqual(["OPTION opt3"], get_options_setting(details, 'web-b'))
+        self.assertEqual(["option opt1", "option opt2"], get_options_setting(details, 'web-a'))
+        self.assertEqual(["option opt3"], get_options_setting(details, 'web-b'))
         self.assertEqual([], get_options_setting(details, 'web-c'))
         self.assertEqual([], get_options_setting(details, 'web-d'))
         self.assertEqual([], get_options_setting(details, 'web-e'))
