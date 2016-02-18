@@ -58,6 +58,14 @@ def get_service_aliases_given_tcp_port(details, service_aliases, tcp_port):
     return services
 
 
+def get_tcp_balance(details):
+    balance = get_service_attribute(details, 'balance')
+    if balance:
+        return ["balance %s" % balance]
+    else:
+        return []
+
+
 def get_tcp_options(details, services):
     option_list = []
     for service in services:

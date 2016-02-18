@@ -226,13 +226,15 @@ class Haproxy(object):
         bind_string = get_bind_string(enable_ssl, port_num, self.ssl_bind_string, EXTRA_BIND_SETTINGS)
         tcp_routes, self.routes_added = TcpHelper.get_tcp_routes(details, self.specs.get_routes(), tcp_port, port_num)
         services = TcpHelper.get_service_aliases_given_tcp_port(details, services_aliases, tcp_port)
+        balance = TcpHelper.get_tcp_balance(details)
         options = TcpHelper.get_tcp_options(details, services)
         extra_settings = TcpHelper.get_tcp_extra_settings(details, services)
         tcp_section.append("bind :%s" % bind_string.strip())
         tcp_section.append("mode tcp")
-        tcp_section.extend(tcp_routes)
+        tcp_section.extend(balance)
         tcp_section.extend(options)
         tcp_section.extend(extra_settings)
+        tcp_section.extend(tcp_routes)
         return tcp_section, port_num
 
     def _config_frontend_sections(self):
