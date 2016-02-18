@@ -268,12 +268,13 @@ class Haproxy(object):
         for service_alias in services_aliases:
             backend = BackendHelper.get_backend_section(details, routes, vhosts, service_alias, self.routes_added)
 
-            if not service_alias:
-                if self.require_default_route:
-                    cfg["backend default_service"] = backend
-            else:
-                if get_service_attribute(details, "virtual_host", service_alias):
-                    cfg["backend SERVICE_%s" % service_alias] = backend
+            if BackendHelper.check_backend_has_routes(backend):
+                if not service_alias:
+                    if self.require_default_route:
+                        cfg["backend default_service"] = backend
                 else:
-                    cfg["backend default_service"] = backend
+                    if get_service_attribute(details, "virtual_host", service_alias):
+                        cfg["backend SERVICE_%s" % service_alias] = backend
+                    else:
+                        cfg["backend default_service"] = backend
         return cfg

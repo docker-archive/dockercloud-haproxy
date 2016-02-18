@@ -20,6 +20,7 @@ class FetchRemoteObjTestCase(unittest.TestCase):
 
     @mock.patch("haproxy.utils.dockercloud.Utils.fetch_by_resource_uri")
     def test_fetch_remote_object(self, mock_fetch_by_resource_uri):
+        self.assertIsNone(fetch_remote_obj(""))
         mock_fetch_by_resource_uri.return_value = self.container
         self.assertEqual(self.container, fetch_remote_obj("uri"))
 

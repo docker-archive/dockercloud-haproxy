@@ -118,7 +118,6 @@ class TcpHelperTestCase(unittest.TestCase):
         self.assertEqual([], get_tcp_balance({'WORLD': {'balance': ""}}))
         self.assertTrue(get_tcp_balance(details) in [["balance a"], ["balance b"], []])
 
-
     def test_get_tcp_options(self):
         details = {'HW': {'option': ["opt1", 'opt2']},
                    'HELLO': {'option': ["opt3", "opt1"]},
