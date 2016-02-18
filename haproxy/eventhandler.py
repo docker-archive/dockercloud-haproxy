@@ -20,7 +20,7 @@ def on_cloud_event(event):
 
     # Add/remove services linked to haproxy
     if event.get("state", "") == "Success" and config.HAPROXY_SERVICE_URI in event.get("parents", []):
-        run_haproxy("Event: Links are added to or removed from the haproxy container")
+        run_haproxy("Event: New action is executed on the Haproxy container")
 
 
 def on_websocket_open():
