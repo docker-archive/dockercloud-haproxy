@@ -23,15 +23,15 @@ class OnCloudEventTestCase(unittest.TestCase):
 
     @mock.patch("haproxy.eventhandler.run_haproxy")
     def test_event_reload_in_service_opterations(self, mock_run_haproxy):
-        not_triggered_event_01 = {}
-        not_triggered_event_02 = {"state": "In progress", "type": "container", "parents": ["/svc/a/"]}
-        not_triggered_event_03 = {"state": "Pending", "type": "container", "parents": ["/svc/a/"]}
-        not_triggered_event_04 = {"state": "Terminating", "type": "container", "parents": ["/svc/a/"]}
-        not_triggered_event_05 = {"state": "Starting", "type": "container", "parents": ["/svc/a/"]}
-        not_triggered_event_06 = {"state": "Scaling", "type": "container", "parents": ["/svc/a/"]}
-        not_triggered_event_07 = {"state": "Stopping", "type": "container", "parents": ["/svc/a/"]}
-        not_triggered_event_08 = {"state": "Running", "type": "node", "parents": ["/svc/a/"]}
-        not_triggered_event_09 = {"state": "Running", "type": "container", "parents": ["/svc/d/"]}
+        not_triggered_event_01 = '{}'
+        not_triggered_event_02 = '{"state": "In progress", "type": "container", "parents": ["/svc/a/"]}'
+        not_triggered_event_03 = '{"state": "Pending", "type": "container", "parents": ["/svc/a/"]}'
+        not_triggered_event_04 = '{"state": "Terminating", "type": "container", "parents": ["/svc/a/"]}'
+        not_triggered_event_05 = '{"state": "Starting", "type": "container", "parents": ["/svc/a/"]}'
+        not_triggered_event_06 = '{"state": "Scaling", "type": "container", "parents": ["/svc/a/"]}'
+        not_triggered_event_07 = '{"state": "Stopping", "type": "container", "parents": ["/svc/a/"]}'
+        not_triggered_event_08 = '{"state": "Running", "type": "node", "parents": ["/svc/a/"]}'
+        not_triggered_event_09 = '{"state": "Running", "type": "container", "parents": ["/svc/d/"]}'
 
         on_cloud_event(not_triggered_event_01)
         on_cloud_event(not_triggered_event_02)
@@ -45,13 +45,13 @@ class OnCloudEventTestCase(unittest.TestCase):
 
         self.assertEqual(0, mock_run_haproxy.call_count)
 
-        triggered_event_01 = {"state": "Stopped", "type": "container", "parents": ["/svc/a/"]}
-        triggered_event_02 = {"state": "Started", "type": "container", "parents": ["/svc/a/"]}
-        triggered_event_03 = {"state": "Running", "type": "container", "parents": ["/svc/a/"]}
-        triggered_event_04 = {"state": "Running", "type": "service", "parents": ["/svc/a/"]}
-        triggered_event_05 = {"state": "Running", "type": "container", "parents": ["/svc/b/"]}
-        triggered_event_06 = {"state": "Running", "type": "container", "parents": ["/svc/b/", "/svc/b/"]}
-        triggered_event_07 = {"state": "Running", "type": "container", "parents": ["/svc/a/", "/svc/b/", "/svc/c/"]}
+        triggered_event_01 = '{"state": "Stopped", "type": "container", "parents": ["/svc/a/"]}'
+        triggered_event_02 = '{"state": "Started", "type": "container", "parents": ["/svc/a/"]}'
+        triggered_event_03 = '{"state": "Running", "type": "container", "parents": ["/svc/a/"]}'
+        triggered_event_04 = '{"state": "Running", "type": "service", "parents": ["/svc/a/"]}'
+        triggered_event_05 = '{"state": "Running", "type": "container", "parents": ["/svc/b/"]}'
+        triggered_event_06 = '{"state": "Running", "type": "container", "parents": ["/svc/b/", "/svc/b/"]}'
+        triggered_event_07 = '{"state": "Running", "type": "container", "parents": ["/svc/a/", "/svc/b/", "/svc/c/"]}'
 
         on_cloud_event(triggered_event_01)
         on_cloud_event(triggered_event_02)
@@ -65,10 +65,10 @@ class OnCloudEventTestCase(unittest.TestCase):
 
     @mock.patch("haproxy.eventhandler.run_haproxy")
     def test_event_reload_in_link_opterations(self, mock_run_haproxy):
-        not_triggered_event_01 = {}
-        not_triggered_event_02 = {"state": "Failed", "parents": ["/svc/a/"]}
-        not_triggered_event_03 = {"state": "Success", "parents": ["/svc/a/"]}
-        not_triggered_event_04 = {"state": "Success", "parents": []}
+        not_triggered_event_01 = '{}'
+        not_triggered_event_02 = '{"state": "Failed", "parents": ["/svc/a/"]}'
+        not_triggered_event_03 = '{"state": "Success", "parents": ["/svc/a/"]}'
+        not_triggered_event_04 = '{"state": "Success", "parents": []}'
 
         on_cloud_event(not_triggered_event_01)
         on_cloud_event(not_triggered_event_02)
@@ -76,8 +76,8 @@ class OnCloudEventTestCase(unittest.TestCase):
         on_cloud_event(not_triggered_event_04)
         self.assertEqual(0, mock_run_haproxy.call_count)
 
-        triggered_event_01 = {"state": "Success", "parents": ["/svc/uuid/"]}
-        triggered_event_02 = {"state": "Success", "parents": ["/svc/a/", "/svc/uuid/"]}
+        triggered_event_01 = '{"state": "Success", "parents": ["/svc/uuid/"]}'
+        triggered_event_02 = '{"state": "Success", "parents": ["/svc/a/", "/svc/uuid/"]}'
 
         on_cloud_event(triggered_event_01)
         on_cloud_event(triggered_event_02)

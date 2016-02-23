@@ -1,4 +1,5 @@
 import logging
+import json
 
 import config
 from haproxycfg import run_haproxy, Haproxy
@@ -7,9 +8,15 @@ from utils import get_uuid_from_resource_uri
 logger = logging.getLogger("haproxy")
 
 
-def on_cloud_event(event):
-    logger.debug(event)
+def on_cloud_event(message):
+    logger.debug(message)
     logger.debug(Haproxy.cls_linked_services)
+    try:
+        event = json.loads(message)
+    except ValueError:
+        logger.info("event is not a valid json message")
+        return
+
     # When service scale up/down or container start/stop/terminate/redeploy, reload the service
     if event.get("state", "") not in ["In progress", "Pending", "Terminating", "Starting", "Scaling", "Stopping"] and \
                     event.get("type", "").lower() in ["container", "service"] and \
