@@ -11,8 +11,8 @@ Usage
 
 Launch your application container that exposes port 80:
 
-    docker run -d --name web1 tutum/hello-world
-    docker run -d --name web2 tutum/hello-world
+    docker run -d --name web1 dockercloud/hello-world
+    docker run -d --name web2 dockercloud/hello-world
 
 Then, run `dockercloud/haproxy` linking it to the target containers:
 
@@ -233,12 +233,12 @@ Use case scenarios
 
 Use the following:
 
-    docker run -d --expose 80 --name webapp tutum/hello-world
+    docker run -d --expose 80 --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 80:80 dockercloud/haproxy
 
 #### My webapp container exposes port 80 and database ports 8083/8086, and I want the proxy to listen in port 80 without my database ports added to haproxy
 
-    docker run -d -e EXCLUDE_PORTS=8803,8806 --expose 80 --expose 8033 --expose 8086 --name webapp tutum/hello-world
+    docker run -d -e EXCLUDE_PORTS=8803,8806 --expose 80 --expose 8033 --expose 8086 --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 80:80 dockercloud/haproxy
 
 #### My webapp container exposes port 8080(or any other port), and I want the proxy to listen in port 8080
@@ -252,7 +252,7 @@ Use the following:
 
 Use the following:
 
-    docker run -d -e SSL_CERT="YOUR_CERT_TEXT" --name webapp tutum/hello-world
+    docker run -d -e SSL_CERT="YOUR_CERT_TEXT" --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 443:443 -p 80:80 dockercloud/haproxy
 
 or
@@ -267,14 +267,14 @@ The certificate in `YOUR_CERT_TEXT` is a combination of private key followed by 
 
 Use the following:
 
-    docker run -d -e FORCE_SSL=yes -e SSL_CERT="YOUR_CERT_TEXT" --name webapp tutum/hello-world
+    docker run -d -e FORCE_SSL=yes -e SSL_CERT="YOUR_CERT_TEXT" --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 443:443 dockercloud/haproxy
 
 #### I want to set up virtual host routing by domain
 
 Virtual hosts can be configured by the proxy reading linked container environment variables (`VIRTUAL_HOST`). Here is an example:
 
-    docker run -d -e VIRTUAL_HOST="www.webapp1.com, www.webapp1.org" --name webapp1 tutum/hello-world
+    docker run -d -e VIRTUAL_HOST="www.webapp1.com, www.webapp1.org" --name webapp1 dockercloud/hello-world
     docker run -d -e VIRTUAL_HOST=www.webapp2.com --name webapp2 your/webapp2
     docker run -d --link webapp1:webapp1 --link webapp2:webapp2 -p 80:80 dockercloud/haproxy
 
@@ -282,32 +282,32 @@ In the example above, when you access `http://www.webapp1.com` or `http://www.we
 
 If you use the following:
 
-    docker run -d -e VIRTUAL_HOST=www.webapp1.com --name webapp1 tutum/hello-world
-    docker run -d -e VIRTUAL_HOST=www.webapp2.com --name webapp2-1 tutum/hello-world
-    docker run -d -e VIRTUAL_HOST=www.webapp2.com --name webapp2-2 tutum/hello-world
+    docker run -d -e VIRTUAL_HOST=www.webapp1.com --name webapp1 dockercloud/hello-world
+    docker run -d -e VIRTUAL_HOST=www.webapp2.com --name webapp2-1 dockercloud/hello-world
+    docker run -d -e VIRTUAL_HOST=www.webapp2.com --name webapp2-2 dockercloud/hello-world
     docker run -d --link webapp1:webapp1 --link webapp2-1:webapp2-1 --link webapp2-2:webapp2-2 -p 80:80 dockercloud/haproxy
 
 When you access `http://www.webapp1.com`, it will show the service running in container `webapp1`, and `http://www.webapp2.com` will go to both containers `webapp2-1` and `webapp2-2` using round robin (or whatever is configured in `BALANCE`).
 
 #### I want all my `*.node.io` domains point to my service
 
-    docker run -d -e VIRTUAL_HOST="*.node.io" --name webapp tutum/hello-world
+    docker run -d -e VIRTUAL_HOST="*.node.io" --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 80:80 dockercloud/haproxy
 
 #### I want `web.example.com` go to one service and `*.example.com` go to another service
 
-    docker run -d -e VIRTUAL_HOST="web.example.com" -e VIRTUAL_HOST_WEIGHT=1 --name webapp tutum/hello-world
-    docker run -d -e VIRTUAL_HOST="*.example.com" -e VIRTUAL_HOST_WEIGHT=0 --name app tutum/hello-world
+    docker run -d -e VIRTUAL_HOST="web.example.com" -e VIRTUAL_HOST_WEIGHT=1 --name webapp dockercloud/hello-world
+    docker run -d -e VIRTUAL_HOST="*.example.com" -e VIRTUAL_HOST_WEIGHT=0 --name app dockercloud/hello-world
     docker run -d --link webapp:webapp --link app:app -p 80:80 dockercloud/haproxy
 
 #### I want all the requests to path `/path` point to my service
 
-	docker run -d -e VIRTUAL_HOST="*/path, */path/*" --name webapp tutum/hello-world
+	docker run -d -e VIRTUAL_HOST="*/path, */path/*" --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 80:80 dockercloud/haproxy
 
 #### I want all the static html request point to my service
 
-	docker run -d -e VIRTUAL_HOST="*/*.htm, */*.html" --name webapp tutum/hello-world
+	docker run -d -e VIRTUAL_HOST="*/*.htm, */*.html" --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 80:80 dockercloud/haproxy
 
 #### I want to see stats of HAProxy
@@ -318,8 +318,8 @@ When you access `http://www.webapp1.com`, it will show the service running in co
 
 Replace `<subdomain>` and `<port>` with your the values matching your papertrailapp account:
 
-    docker run -d --name web1 tutum/hello-world
-    docker run -d --name web2 tutum/hello-world
+    docker run -d --name web1 dockercloud/hello-world
+    docker run -d --name web2 dockercloud/hello-world
     docker run -it --env RSYSLOG_DESTINATION='<subdomain>.papertrailapp.com:<port>' -p 80:80 --link web1:web1 --link web2:web2 dockercloud/haproxy
 
 Topologies using virtual hosts
