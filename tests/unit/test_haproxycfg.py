@@ -2,21 +2,35 @@ import unittest
 
 import mock
 
-from haproxy import config
 from haproxy import haproxycfg
 from haproxy.haproxycfg import *
+from haproxy.parser.base_parser import Specs
+from haproxy.parser.legacy_link_parser import LegacyLinkSpecs
+from haproxy.parser.new_link_parser import NewLinkSpecs
 
 
-class HaproxyTestCase(unittest.TestCase):
+class HaproxyInitTestCase(unittest.TestCase):
+    @mock.patch.object(haproxycfg.Haproxy, '_init_cloud_links')
+    @mock.patch.object(haproxycfg.Haproxy, '_init_new_links')
+    def test_initialize(self, mock_init_new_links, mock_init_cloud_links):
+        self.assertTrue(isinstance(Haproxy._initialize("new"), NewLinkSpecs))
+        self.assertTrue(isinstance(Haproxy._initialize("cloud"), NewLinkSpecs))
+        self.assertTrue(isinstance(Haproxy._initialize("legacy"), LegacyLinkSpecs))
+        self.assertTrue(isinstance(Haproxy._initialize("other"), LegacyLinkSpecs))
+
+    @mock.patch("haproxy.haproxycfg.docker_client")
+    def test_init_new_links_regressiong(self, mock_client):
+        mock_client.side_effect = Exception()
+        self.assertIsNone(Haproxy._init_new_links())
+
+
+class HaproxyUpdateTestCase(unittest.TestCase):
     @mock.patch("haproxy.helper.update_helper.run_reload")
     @mock.patch("haproxy.haproxycfg.save_to_file")
     @mock.patch.object(haproxycfg.Haproxy, '_initialize')
     def test_update_haproxy_cfg_updated_success(self, mock_init, mock_save, mock_run_reload):
-        haproxycfg.HAPROXY_SERVICE_URI = "service_uri"
-        haproxycfg.HAPROXY_CONTAINER_URI = "container_uri"
-        haproxycfg.API_AUTH = "api_uth"
-
         haproxy = Haproxy()
+        haproxy.link_mode = "cloud"
         cfg = {"key": "value"}
         Haproxy.cls_cfg = {}
         mock_save.return_value = True
@@ -29,11 +43,8 @@ class HaproxyTestCase(unittest.TestCase):
     @mock.patch("haproxy.haproxycfg.save_to_file")
     @mock.patch.object(haproxycfg.Haproxy, '_initialize')
     def test_update_haproxy_cfg_updated_failed(self, mock_init, mock_save, mock_run_reload):
-        haproxycfg.HAPROXY_SERVICE_URI = "service_uri"
-        haproxycfg.HAPROXY_CONTAINER_URI = "container_uri"
-        haproxycfg.API_AUTH = "api_uth"
-
         haproxy = Haproxy()
+        haproxy.link_mode = "cloud"
         cfg = {"key": "value"}
         Haproxy.cls_cfg = {}
         mock_save.return_value = False
@@ -46,11 +57,8 @@ class HaproxyTestCase(unittest.TestCase):
     @mock.patch("haproxy.haproxycfg.save_to_file")
     @mock.patch.object(haproxycfg.Haproxy, '_initialize')
     def test_update_haproxy_cfg_ssl_updated(self, mock_init, mock_save, mock_run_reload):
-        haproxycfg.HAPROXY_SERVICE_URI = "service_uri"
-        haproxycfg.HAPROXY_CONTAINER_URI = "container_uri"
-        haproxycfg.API_AUTH = "api_uth"
-
         haproxy = Haproxy()
+        haproxy.link_mode = "cloud"
         cfg = {"key": "value"}
         Haproxy.cls_cfg = cfg
         haproxy.ssl_updated = True
@@ -64,11 +72,8 @@ class HaproxyTestCase(unittest.TestCase):
     @mock.patch("haproxy.haproxycfg.save_to_file")
     @mock.patch.object(haproxycfg.Haproxy, '_initialize')
     def test_update_haproxy_cfg_no_updates(self, mock_init, mock_save, mock_run_reload):
-        haproxycfg.HAPROXY_SERVICE_URI = "service_uri"
-        haproxycfg.HAPROXY_CONTAINER_URI = "container_uri"
-        haproxycfg.API_AUTH = "api_uth"
-
         haproxy = Haproxy()
+        haproxy.link_mode = "cloud"
         cfg = {"key": "value"}
         Haproxy.cls_cfg = cfg
         haproxy.ssl_updated = False
@@ -83,18 +88,16 @@ class HaproxyTestCase(unittest.TestCase):
     @mock.patch("haproxy.haproxycfg.save_to_file")
     @mock.patch.object(haproxycfg.Haproxy, '_initialize')
     def test_update_haproxy_cfg_only_once(self, mock_init, mock_save, mock_run_reload, mock_run_once):
-        haproxycfg.HAPROXY_SERVICE_URI = ""
-        haproxycfg.HAPROXY_CONTAINER_URI = ""
-        haproxycfg.API_AUTH = ""
-
         haproxy = Haproxy()
+        haproxy.link_mode = "legacy"
         cfg = {"key": "value"}
-
         haproxy._update_haproxy(cfg)
         mock_save.assert_called_with(HAPROXY_CONFIG_FILE, cfg)
         self.assertFalse(mock_run_reload.called)
         self.assertTrue(mock_run_once)
 
+
+class HaproxyConfigSSLTestCase(unittest.TestCase):
     @mock.patch.object(haproxycfg.Haproxy, '_config_ssl_cacerts')
     @mock.patch.object(haproxycfg.Haproxy, '_config_ssl_certs')
     @mock.patch.object(haproxycfg.Haproxy, '_initialize')
@@ -160,6 +163,8 @@ class HaproxyTestCase(unittest.TestCase):
 
         haproxycfg.DEFAULT_CA_CERT = config.DEFAULT_CA_CERT
 
+
+class HaproxyConfigUserListTestCase(unittest.TestCase):
     def test_config_userlist_section(self):
         self.assertEqual({}, Haproxy._config_userlist_section(""))
         self.assertEqual({'userlist haproxy_userlist': ['user user insecure-password pass']},
@@ -250,6 +255,8 @@ class HaproxyTestCase(unittest.TestCase):
                                                           'server HW_2 10.7.0.3:22 check'])]),
                          haproxy._config_tcp_sections())
 
+
+class HaproxyConfigFrontendTestCase(unittest.TestCase):
     @mock.patch.object(Specs, 'get_vhosts')
     @mock.patch.object(Specs, 'get_routes')
     @mock.patch.object(Specs, 'get_service_aliases')
@@ -297,6 +304,8 @@ class HaproxyTestCase(unittest.TestCase):
                                                                      'default_backend default_service'])]),
                          haproxy._config_frontend_sections())
 
+
+class HaproxyConfigBackendTestCase(unittest.TestCase):
     @mock.patch.object(Specs, 'get_vhosts')
     @mock.patch.object(Specs, 'get_routes')
     @mock.patch.object(Specs, 'get_service_aliases')

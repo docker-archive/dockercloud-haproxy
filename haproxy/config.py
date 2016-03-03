@@ -1,7 +1,17 @@
 import os
 import re
 
-from parser import parse_extra_bind_settings
+
+def parse_extra_bind_settings(extra_bind_settings):
+    bind_dict = {}
+    if extra_bind_settings:
+        settings = re.split(r'(?<!\\),', extra_bind_settings)
+        for setting in settings:
+            term = setting.split(":", 1)
+            if len(term) == 2:
+                bind_dict[term[0].strip().replace("\,", ",")] = term[1].strip().replace("\,", ",")
+    return bind_dict
+
 
 # envvar
 DEFAULT_SSL_CERT = os.getenv("DEFAULT_SSL_CERT") or os.getenv("SSL_CERT")
@@ -28,6 +38,7 @@ HAPROXY_CONTAINER_URI = os.getenv("DOCKERCLOUD_CONTAINER_API_URI")
 HAPROXY_SERVICE_URI = os.getenv("DOCKERCLOUD_SERVICE_API_URI")
 API_AUTH = os.getenv("DOCKERCLOUD_AUTH")
 DEBUG = os.getenv("DEBUG", False)
+LINK_MODE = ""
 
 # const
 CERT_DIR = "/certs/"
@@ -37,6 +48,7 @@ HAPROXY_RUN_COMMAND = ['/usr/sbin/haproxy', '-f', HAPROXY_CONFIG_FILE, '-db', '-
 API_RETRY = 10  # seconds
 PID_FILE = "/tmp/dockercloud-haproxy.pid"
 
+# regular expressions
 SERVICE_NAME_MATCH = re.compile(r"(.+)_\d+$")
 BACKEND_MATCH = re.compile(r"(?P<proto>tcp|udp):\/\/(?P<addr>[^:]*):(?P<port>.*)")
 SERVICE_ALIAS_MATCH = re.compile(r"_PORT_\d{1,5}_(TCP|UDP)$")

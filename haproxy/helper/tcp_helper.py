@@ -8,7 +8,7 @@ def get_tcp_port_list(details, service_aliases):
     ports = []
     for service_alias in service_aliases:
         tcp_ports = get_service_attribute(details, "tcp_ports", service_alias)
-        if tcp_ports:
+        if tcp_ports and isinstance(tcp_ports, list):
             ports.extend(tcp_ports)
     return ports
 

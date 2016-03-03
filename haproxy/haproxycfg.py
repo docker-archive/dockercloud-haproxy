@@ -2,22 +2,26 @@ import copy
 import logging
 from collections import OrderedDict
 
+from compose.cli.docker_client import docker_client
+
+import config
 import helper.backend_helper as BackendHelper
+import helper.cloud_link_helper as CloudLinkHelper
 import helper.config_helper as ConfigHelper
 import helper.frontend_helper as FrontendHelper
-import helper.init_helper as InitHelper
+import helper.new_link_helper as NewLinkHelper
 import helper.ssl_helper as SslHelper
 import helper.tcp_helper as TcpHelper
 import helper.update_helper as UpdateHelper
 from haproxy.config import *
-from parser import Specs
+from haproxy.parser import LegacyLinkSpecs, NewLinkSpecs
 from utils import fetch_remote_obj, prettify, save_to_file, get_service_attribute, get_bind_string
 
 logger = logging.getLogger("haproxy")
 
 
 def run_haproxy(msg=None):
-    haproxy = Haproxy(msg)
+    haproxy = Haproxy(config.LINK_MODE, msg)
     haproxy.update()
 
 
@@ -27,62 +31,78 @@ class Haproxy(object):
     cls_process = None
     cls_certs = []
 
-    cls_service_name_match = re.compile(r"(.+)_\d+$")
-
-    LINKED_CONTAINER_CACHE = {}
-
-    def __init__(self, msg=""):
+    def __init__(self, link_mode="", msg=""):
         logger.info("==========BEGIN==========")
         if msg:
             logger.info(msg)
 
+        self.link_mode = link_mode
         self.ssl_bind_string = None
         self.ssl_updated = False
         self.routes_added = []
         self.require_default_route = False
+        self.specs = None
 
-        self._initialize()
+        self.specs = self._initialize(self.link_mode)
 
-    def _initialize(self):
-        if HAPROXY_CONTAINER_URI and HAPROXY_SERVICE_URI and API_AUTH:
-            haproxy_container = fetch_remote_obj(HAPROXY_CONTAINER_URI)
-
-            haproxy_links = InitHelper.get_links_from_haproxy(haproxy_container.linked_to_container)
-            new_added_container_uris = InitHelper.get_new_added_link_uri(Haproxy.LINKED_CONTAINER_CACHE, haproxy_links)
-            new_added_containers = InitHelper.get_container_object_from_uri(new_added_container_uris)
-            InitHelper.update_container_cache(Haproxy.LINKED_CONTAINER_CACHE, new_added_container_uris,
-                                              new_added_containers)
-            linked_containers = InitHelper.get_linked_containers(Haproxy.LINKED_CONTAINER_CACHE,
-                                                                 haproxy_container.linked_to_container)
-            InitHelper.update_haproxy_links(haproxy_links, linked_containers)
-
-            logger.info("Service links: %s", ", ".join(InitHelper.get_service_links_str(haproxy_links)))
-            logger.info("Container links: %s", ", ".join(InitHelper.get_container_links_str(haproxy_links)))
-
-            Haproxy.cls_linked_services = InitHelper.get_linked_services(haproxy_links)
-            self.specs = Specs(haproxy_links)
+    @staticmethod
+    def _initialize(link_mode):
+        if link_mode == "cloud":
+            links = Haproxy._init_cloud_links()
+            specs = NewLinkSpecs(links)
+        elif link_mode == "new":
+            links = Haproxy._init_new_links()
+            if links is None:
+                specs = LegacyLinkSpecs()
+            else:
+                specs = NewLinkSpecs(links)
         else:
-            logger.info("Loading HAProxy definition from environment variables")
-            Haproxy.cls_linked_services = None
-            Haproxy.specs = Specs()
+            specs = LegacyLinkSpecs()
+        return specs
+
+    @staticmethod
+    def _init_cloud_links():
+        haproxy_container = fetch_remote_obj(HAPROXY_CONTAINER_URI)
+        links = CloudLinkHelper.get_cloud_links(haproxy_container)
+        Haproxy.cls_linked_services = CloudLinkHelper.get_linked_services(links)
+        logger.info("Linked service: %s", ", ".join(CloudLinkHelper.get_service_links_str(links)))
+        logger.info("Linked container: %s", ", ".join(CloudLinkHelper.get_container_links_str(links)))
+        return links
+
+    @staticmethod
+    def _init_new_links():
+        try:
+            docker = docker_client()
+            docker.ping()
+            container_id = os.environ.get("HOSTNAME", "")
+            haproxy_container = docker.inspect_container(container_id)
+        except Exception as e:
+            logger.info("Docker API error, regressing to legacy links mode: ", e)
+            return None
+        links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
+        logger.info("Linked service: %s", ", ".join(NewLinkHelper.get_service_links_str(links)))
+        logger.info("Linked container: %s", ", ".join(NewLinkHelper.get_container_links_str(links)))
+        return links
 
     def update(self):
-        self._config_ssl()
+        if self.specs:
+            self._config_ssl()
+            cfg_dict = OrderedDict()
+            cfg_dict.update(self._config_global_section())
+            cfg_dict.update(self._config_defaults_section())
+            cfg_dict.update(self._config_stats_section())
+            cfg_dict.update(self._config_userlist_section(HTTP_BASIC_AUTH))
+            cfg_dict.update(self._config_tcp_sections())
+            cfg_dict.update(self._config_frontend_sections())
+            cfg_dict.update(self._config_backend_sections())
 
-        cfg_dict = OrderedDict()
-        cfg_dict.update(self._config_global_section())
-        cfg_dict.update(self._config_defaults_section())
-        cfg_dict.update(self._config_stats_section())
-        cfg_dict.update(self._config_userlist_section(HTTP_BASIC_AUTH))
-        cfg_dict.update(self._config_tcp_sections())
-        cfg_dict.update(self._config_frontend_sections())
-        cfg_dict.update(self._config_backend_sections())
-
-        cfg = prettify(cfg_dict)
-        self._update_haproxy(cfg)
+            cfg = prettify(cfg_dict)
+            self._update_haproxy(cfg)
+        else:
+            logger.info("Internal error: Specs is not initialized")
 
     def _update_haproxy(self, cfg):
-        if HAPROXY_SERVICE_URI and HAPROXY_CONTAINER_URI and API_AUTH:
+        if self.link_mode in ["cloud", "new"]:
             if Haproxy.cls_cfg != cfg:
                 logger.info("HAProxy configuration:\n%s" % cfg)
                 Haproxy.cls_cfg = cfg
@@ -94,10 +114,10 @@ class Haproxy(object):
             else:
                 logger.info("HAProxy configuration remains unchanged")
             logger.info("===========END===========")
-        else:
+        elif self.link_mode in ["legacy"]:
             logger.info("HAProxy configuration:\n%s" % cfg)
-            save_to_file(HAPROXY_CONFIG_FILE, cfg)
-            UpdateHelper.run_once()
+            if save_to_file(HAPROXY_CONFIG_FILE, cfg):
+                UpdateHelper.run_once()
 
     def _config_ssl(self):
         ssl_bind_string = ""

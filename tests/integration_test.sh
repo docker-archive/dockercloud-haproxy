@@ -89,7 +89,7 @@ echo "   Sending request without certificate"
 curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'handshake' > /dev/null
 echo "   Sending request with a wrong certificate"
 curl -sSfL --cacert ca1.pem --cert cert1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'alert unknown ca' > /dev/null
-echo "   Sending reqeust with the correct certifcate"
+echo "   Sending request with the correct certificate"
 curl -sSfL --cacert ca1.pem --cert cert0.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
@@ -163,7 +163,7 @@ curl -sSfL --resolve web-b.org:8080:${DOCKER_HOST_IP} web-b.org:8080 2>&1 | grep
 curl -sSfL --resolve web-b.org:8080:${DOCKER_HOST_IP} -H 'Host:web-b.org' web-b.org:8080 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
 echo
 
-echo "=> Test virualhost with a value of *"
+echo "=> Test virtual host with a value of *"
 rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST="*" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -p 80:80 haproxy
@@ -172,7 +172,7 @@ curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} web-a.org:80 2>&1 | grep -iF
 curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} -H 'Host:web-a.org' web-a.org:80 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
-echo "=> Test virualhost with a value of */"
+echo "=> Test virtual host with a value of */"
 rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST="*/" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -p 80:80 haproxy
@@ -182,7 +182,7 @@ curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} -H 'Host:web-a.org' web-a.or
 curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} web-a.org/abc 2>&1 | grep -iF '503 Service Unavailable' > /dev/null
 echo
 
-echo "=> Test virualhost with a value of */*"
+echo "=> Test virtual host with a value of */*"
 rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST="*/*" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -p 80:80 haproxy

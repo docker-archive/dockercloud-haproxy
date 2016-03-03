@@ -28,15 +28,3 @@ class ConfigHelperTestCase(unittest.TestCase):
         self.assertEqual([], config_timeout(""))
         self.assertEqual(["timeout aa"], config_timeout("aa"))
         self.assertEqual(["timeout aa", "timeout bb", "timeout cc"], config_timeout("aa,  bb  ,cc "))
-
-#
-
-#
-# def config_timeout(timeout):
-#     statements = []
-#     if timeout:
-#         for _t in timeout.split(","):
-#             t = _t.strip()
-#             if t:
-#                 statements.append("timeout %s" % t)
-#     return statements
