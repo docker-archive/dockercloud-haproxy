@@ -49,6 +49,8 @@ def listen_remote_events():
 def main():
     logging.basicConfig(stream=sys.stdout)
     logging.getLogger("haproxy").setLevel(logging.DEBUG if DEBUG else logging.INFO)
+    if DEBUG:
+        requests_log = logging.getLogger("python-dockercloud").setLevel(logging.DEBUG)
 
     signal.signal(signal.SIGUSR1, on_user_reload)
     signal.signal(signal.SIGTERM, sys.exit)
