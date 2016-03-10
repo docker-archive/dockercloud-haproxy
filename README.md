@@ -17,7 +17,7 @@ You can use `dockercloud/haproxy` in three different ways:
 
 - running in Docker Cloud
 - running with docker legacy links
-- running with docker compose v2(new links)
+- running with Docker Compose v2(new links, compatible with Docker Swarm)
 
 ### Running in Docker Cloud
 
@@ -77,15 +77,17 @@ Legacy link refers to the link created before docker 1.10, and the link created 
 **Note**: Any link alias sharing the same prefix and followed by "-/_" with an integer is considered to be from the same service. For example: `web-1` and `web-2` belong to service `web`, `app_1` and `app_2` are from service `app`, but `app1` and `web2` are from different services.
 
 
-### Running with docker-compose v2(new links)
+### Running with Docker Compose v2(new links, compatible with Docker Swarm)
 
-Docker Compose 1.6 supports a new format of the compose file. In the new version(v2), the old link that injects environment variables is deprecated. Similar to using legacy links, here list some differences that you need to notice:
+Docker Compose 1.6 supports a new format of the compose file. In the new version(v2), the old link that injects environment variables is deprecated.
 
-- This image must be run using Docker Compose, as it relies on the Docker Compose labels for configuration
-- The container needs access to the docker socket, you must mount the correct files and set the related environment to make it work
+Similar to using legacy links, here list some differences that you need to notice:
+- This image must be run using Docker Compose, as it relies on the Docker Compose labels for configuration.
+- The container needs access to the docker socket, you must mount the correct files and set the related environment to make it work.
 - A link is required in order to ensure that dockercloud/haproxy is aware of which service it needs to balance, although links are not needed for service discovery since docker 1.10. Linked aliases are not required.
-- DO not overwrite `HOSTNAME` environment variable in `dockercloud/haproxy container`
-- As it is the case on Docker Cloud, auto reconfiguration is supported when the linked services scales or/and the linked container starts/stops 
+- DO not overwrite `HOSTNAME` environment variable in `dockercloud/haproxy container`.
+- As it is the case on Docker Cloud, auto reconfiguration is supported when the linked services scales or/and the linked container starts/stops.
+- This image is also compatible with Docker Swarm, and supports the docker native `overlay` network across multi-hosts.
 
 ##### example of docker-compose.yml running in linux:
 
