@@ -1,0 +1,2 @@
+from legacy_link_parser import LegacyLinkSpecs
+from new_link_parser import NewLinkSpecs

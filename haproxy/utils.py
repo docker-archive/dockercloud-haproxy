@@ -3,7 +3,7 @@ import time
 
 import dockercloud
 
-from config import API_RETRY
+import config
 
 logger = logging.getLogger("haproxy")
 
@@ -18,7 +18,7 @@ def fetch_remote_obj(uri):
             return obj
         except Exception as e:
             logger.error(e)
-            time.sleep(API_RETRY)
+            time.sleep(config.API_RETRY)
 
 
 def get_uuid_from_resource_uri(uri):
