@@ -2,9 +2,6 @@
 
 set -e
 
-DOCKER_HOST_IP=${DOCKER_HOST_IP:-$1}
-DOCKER_HOST_IP=${DOCKER_HOST_IP:-"127.0.0.1"}
-
 function rm_container {
     set +e
     docker rm -fv "$@" > /dev/null 2>&1
@@ -55,6 +52,15 @@ create_cert 1 web-a.org
 create_cert 2 web-b.org
 echo
 
+
+echo "=> Docker Host Ip address"
+DOCKER_HOST_IP=${DOCKER_HOST_IP:-$1}
+if docker-machine ip $1; then
+    DOCKER_HOST_IP=`docker-machine ip $1`
+fi
+DOCKER_HOST_IP=${DOCKER_HOST_IP:-"127.0.0.1"}
+echo
+
 echo "=> Running Tests"
 
 echo "=> Test if haproxy is running properly"
@@ -70,7 +76,7 @@ rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME="web-a" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -e DEFAULT_SSL_CERT="$(awk 1 ORS='\\n' cert1.pem)" -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
-curl -sSfL --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF "SSL certificate problem: self signed certificate" > /dev/null
+curl -sSfL --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF "SSL certificate problem" > /dev/null
 curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
@@ -80,10 +86,10 @@ docker run -d --name web-a -e HOSTNAME="web-a" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -e DEFAULT_SSL_CERT="$(awk 1 ORS='\\n' cert1.pem)" -e CA_CERT="$(awk 1 ORS='\\n' ca0.pem)" -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
 echo "   Sending request without certificate"
-curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'handshake failure' > /dev/null
+curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'handshake' > /dev/null
 echo "   Sending request with a wrong certificate"
 curl -sSfL --cacert ca1.pem --cert cert1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'alert unknown ca' > /dev/null
-echo "   Sending reqeust with the correct certifcate"
+echo "   Sending request with the correct certificate"
 curl -sSfL --cacert ca1.pem --cert cert0.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
@@ -157,7 +163,7 @@ curl -sSfL --resolve web-b.org:8080:${DOCKER_HOST_IP} web-b.org:8080 2>&1 | grep
 curl -sSfL --resolve web-b.org:8080:${DOCKER_HOST_IP} -H 'Host:web-b.org' web-b.org:8080 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
 echo
 
-echo "=> Test virualhost with a value of *"
+echo "=> Test virtual host with a value of *"
 rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST="*" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -p 80:80 haproxy
@@ -166,7 +172,7 @@ curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} web-a.org:80 2>&1 | grep -iF
 curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} -H 'Host:web-a.org' web-a.org:80 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
-echo "=> Test virualhost with a value of */"
+echo "=> Test virtual host with a value of */"
 rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST="*/" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -p 80:80 haproxy
@@ -176,7 +182,7 @@ curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} -H 'Host:web-a.org' web-a.or
 curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} web-a.org/abc 2>&1 | grep -iF '503 Service Unavailable' > /dev/null
 echo
 
-echo "=> Test virualhost with a value of */*"
+echo "=> Test virtual host with a value of */*"
 rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST="*/*" tutum/hello-world
 docker run -d --name lb --link web-a:web-a -p 80:80 haproxy

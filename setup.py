@@ -1,6 +1,6 @@
-import re
-import os
 import codecs
+import os
+import re
 
 from setuptools import setup, find_packages
 
@@ -23,11 +23,15 @@ def find_version(*file_paths):
 with open('requirements.txt') as f:
     install_requires = f.read().splitlines()
 
+with open('./test-requirements.txt') as test_reqs_txt:
+    test_requirements = [line for line in test_reqs_txt]
+
 setup(
     name='dockercloud-haproxy',
     version=find_version('haproxy', '__init__.py'),
     packages=find_packages(),
     install_requires=install_requires,
+    tests_require=test_requirements,
     entry_points={
         'console_scripts':
             ['dockercloud-haproxy = haproxy.main:main']

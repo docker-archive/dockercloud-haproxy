@@ -4,89 +4,93 @@ import signal
 import sys
 
 import dockercloud
+from compose.cli.docker_client import docker_client
 
-from haproxy import Haproxy
-from parser import parse_uuid_from_resource_uri
-from . import __version__
-
+import config
+from config import DEBUG, PID_FILE, HAPROXY_CONTAINER_URI, HAPROXY_SERVICE_URI, API_AUTH
+from eventhandler import on_user_reload, listen_docker_events, listen_dockercloud_events
+from haproxy import __version__
+from haproxycfg import run_haproxy
+from utils import save_to_file
 
 dockercloud.user_agent = "dockercloud-haproxy/%s" % __version__
-
-DEBUG = os.getenv("DEBUG", False)
-PIDFILE = "/tmp/dockercloud-haproxy.pid"
 
 logger = logging.getLogger("haproxy")
 
 
-def run_haproxy(msg=None):
-    logger.info("==========BEGIN==========")
-    if msg:
-        logger.info(msg)
-    haproxy = Haproxy()
-    haproxy.update()
-
-
-def event_handler(event):
-    logger.debug(event)
-    logger.debug(Haproxy.cls_linked_services)
-    # When service scale up/down or container start/stop/terminate/redeploy, reload the service
-    if event.get("state", "") not in ["In progress", "Pending", "Terminating", "Starting", "Scaling", "Stopping"] and \
-                    event.get("type", "").lower() in ["container", "service"] and \
-                    len(set(Haproxy.cls_linked_services).intersection(set(event.get("parents", [])))) > 0:
-        msg = "Event: %s %s is %s" % (
-            event["type"], parse_uuid_from_resource_uri(event.get("resource_uri", "")), event["state"].lower())
-        run_haproxy(msg)
-
-    # Add/remove services linked to haproxy
-    if event.get("state", "") == "Success" and Haproxy.cls_service_uri in event.get("parents", []):
-        run_haproxy()
-
-
 def create_pid_file():
     pid = str(os.getpid())
-    try:
-        file(PIDFILE, 'w').write(pid)
-    except Exception as e:
-        logger.error("Cannot write to pidfile: %s" % e)
+    save_to_file(PID_FILE, pid)
     return pid
-
-
-def user_reload_haproxy(signum, frame):
-    run_haproxy("User reload")
 
 
 def main():
     logging.basicConfig(stream=sys.stdout)
     logging.getLogger("haproxy").setLevel(logging.DEBUG if DEBUG else logging.INFO)
+    if DEBUG:
+        logging.getLogger("python-dockercloud").setLevel(logging.DEBUG)
 
-    pid = create_pid_file()
-    signal.signal(signal.SIGUSR1, user_reload_haproxy)
+    config.LINK_MODE = check_link_mode(HAPROXY_CONTAINER_URI, HAPROXY_SERVICE_URI, API_AUTH)
+    signal.signal(signal.SIGUSR1, on_user_reload)
     signal.signal(signal.SIGTERM, sys.exit)
 
-    if Haproxy.cls_container_uri and Haproxy.cls_service_uri:
-        if Haproxy.cls_dockercloud_auth:
-            logger.info(
-                    "dockercloud/haproxy %s (PID: %s) has access to the cloud API - will reload list of backends"
-                    " in real-time" % (__version__, pid))
-        else:
-            logger.warning(
-                    "dockercloud/haproxy %s (PID: %s) doesn't have access to the cloud API - you might want to"
-                    " give an API role to this service for automatic backend reconfiguration" % (__version__, pid))
-    else:
-        logger.info("dockercloud/haproxy %s (PID: %s) is not running in Docker Cloud" % (__version__, pid))
+    pid = create_pid_file()
+    logger.info("dockercloud/haproxy PID: %s" % pid)
 
-    if Haproxy.cls_container_uri and Haproxy.cls_service_uri and Haproxy.cls_dockercloud_auth:
-        def _websocket_open():
-            Haproxy.cls_linked_container_object_cache.clear()
-            run_haproxy("Websocket open")
-
-        events = dockercloud.Events()
-        events.on_open(_websocket_open)
-        events.on_close(lambda: logger.info("Websocket close"))
-        events.on_message(event_handler)
-        events.run_forever()
-    else:
+    if config.LINK_MODE == "cloud":
+        listen_dockercloud_events()
+    elif config.LINK_MODE == "new":
         run_haproxy("Initial start")
+        while True:
+            listen_docker_events()
+            run_haproxy("Reconnect docker events")
+
+    elif config.LINK_MODE == "legacy":
+        run_haproxy()
+
+
+def check_link_mode(container_uri, service_uri, api_auth):
+    if container_uri and service_uri and api_auth:
+        if container_uri and service_uri:
+            if api_auth:
+                logger.info("dockercloud/haproxy %s has access to the Docker Cloud API - will reload list of backends" \
+                            " in real-time" % __version__)
+            else:
+                logger.info("dockercloud/haproxy %s is unable to access the Docker cloud API - you might want to" \
+                            " give an API role to this service for automatic backend reconfiguration" % __version__)
+        return "cloud"
+    else:
+
+        link_mode = "new"
+        reason = ""
+        try:
+            docker = docker_client()
+            docker.ping()
+        except Exception as e:
+            reason = "unable to connect to docker daemon %s" % e
+            link_mode = "legacy"
+
+        if link_mode == "new":
+            container_id = os.environ.get("HOSTNAME", "")
+            if not container_id:
+                reason = "unable to get dockercloud/haproxy container ID, is HOSTNAME envvar overwritten?"
+                link_mode = "legacy"
+            else:
+                try:
+                    container = docker.inspect_container(container_id)
+                    if container.get("HostConfig", {}).get("Links", []):
+                        reason = "dockercloud/haproxy container is running on default bridge"
+                        link_mode = "legacy"
+                except Exception as e:
+                    reason = "unable to get dockercloud/haproxy container inspect information, %s" % e
+                    link_mode = "legacy"
+
+        logger.info("dockercloud/haproxy %s is running outside Docker Cloud" % __version__)
+        if link_mode == "new":
+            logger.info("New link mode, loading HAProxy definition through docker api")
+        else:
+            logger.info("Legacy link mode, loading HAProxy definition from environment variables: %s", reason)
+        return link_mode
 
 
 if __name__ == "__main__":
