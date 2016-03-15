@@ -61,4 +61,4 @@ class NewLinkEnvParser(EnvParser):
         if service in self.service_aliases:
             for attr in self.attrs:
                 if key == attr and not self.details[service][key]:
-                    self.details[service][key] = value
+                    self.details[service][key] = getattr(self, "parse_%s" % key)(value)
