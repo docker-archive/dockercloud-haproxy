@@ -244,7 +244,9 @@ class Haproxy(object):
         tcp_section = []
         enable_ssl, port_num = TcpHelper.parse_port_string(tcp_port, self.ssl_bind_string)
         bind_string = get_bind_string(enable_ssl, port_num, self.ssl_bind_string, EXTRA_BIND_SETTINGS)
-        tcp_routes, self.routes_added = TcpHelper.get_tcp_routes(details, self.specs.get_routes(), tcp_port, port_num)
+        tcp_routes, routes_added = TcpHelper.get_tcp_routes(details, self.specs.get_routes(), tcp_port, port_num)
+        if routes_added not in self.routes_added:
+            self.routes_added.extend(routes_added)
         services = TcpHelper.get_service_aliases_given_tcp_port(details, services_aliases, tcp_port)
         balance = TcpHelper.get_tcp_balance(details)
         options = TcpHelper.get_tcp_options(details, services)
