@@ -6,8 +6,7 @@ reconfigures itself when a linked cluster member redeploys, joins or leaves.
 
 ## Version
 
-- latest: `dockercloud/haproxy:1.2`
-- stable: `dockercloud/haproxy:1.1.1`
+- latest: `dockercloud/haproxy:1.2.1`
 
 **Attention** : Please *ALWAYS* use a specific image tag that works for you. Do *NOT* use `dockercloud/haproxy:latest` in any situation other than testing purpose.
 
