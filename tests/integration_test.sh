@@ -350,17 +350,17 @@ curl -sSfL ${DOCKER_HOST_IP}:8011/abc.php/ 2>&1 | grep -iF 'My hostname is web-c
 echo
 
 echo "=> Test force_ssl with virtual host"
-rm_container web-a web-b lb 
+rm_container web-a web-b lb
 docker run -d --name web-a -e HOSTNAME="web-a" -e VIRTUAL_HOST="https://web-a.org, web-a.org" -e SSL_CERT="$(awk 1 ORS='\\n' cert1.pem)" tutum/hello-world
 docker run -d --name web-b -e HOSTNAME="web-b" -e VIRTUAL_HOST="https://web-b.org, web-b.org" -e SSL_CERT="$(awk 1 ORS='\\n' cert2.pem)" -e FORCE_SSL=true tutum/hello-world
 docker run -d --name lb  --link web-a:web-a --link web-b:web-b -p 443:443 -p 80:80 haproxy
 wait_for_startup http://${DOCKER_HOST_IP}:80
-curl -sSfL --cacert ca1.pem --resolve web-a.org:443:127.0.0.1 https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
-curl -sSfL --cacert ca2.pem --resolve web-b.org:443:127.0.0.1 https://web-b.org 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
-curl -sSfL --cacert ca1.pem --resolve web-a.org:443:127.0.0.1 --resolve web-a.org:80:127.0.0.1 http://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
-curl -sSfL --cacert ca2.pem --resolve web-b.org:443:127.0.0.1 --resolve web-b.org:80:127.0.0.1 http://web-b.org 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
-curl -sSIL --cacert ca1.pem --resolve web-a.org:443:127.0.0.1 --resolve web-a.org:80:127.0.0.1 http://web-a.org 2>&1 | grep -iF "http/1.1" | grep -v "301" > /dev/null
-curl -sSIL --cacert ca2.pem --resolve web-b.org:443:127.0.0.1 --resolve web-b.org:80:127.0.0.1 http://web-b.org 2>&1 | grep -iF '301 Moved Permanently' > /dev/null
+curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
+curl -sSfL --cacert ca2.pem --resolve web-b.org:443:${DOCKER_HOST_IP} https://web-b.org 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
+curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} --resolve web-a.org:80:${DOCKER_HOST_IP} http://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
+curl -sSfL --cacert ca2.pem --resolve web-b.org:443:${DOCKER_HOST_IP} --resolve web-b.org:80:${DOCKER_HOST_IP} http://web-b.org 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
+curl -sSIL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} --resolve web-a.org:80:${DOCKER_HOST_IP} http://web-a.org 2>&1 | grep -iF "http/1.1" | grep -v "301" > /dev/null
+curl -sSIL --cacert ca2.pem --resolve web-b.org:443:${DOCKER_HOST_IP} --resolve web-b.org:80:${DOCKER_HOST_IP} http://web-b.org 2>&1 | grep -iF '301 Moved Permanently' > /dev/null
 echo
 
 echo "=> Testing force_ssl without virtual host"
