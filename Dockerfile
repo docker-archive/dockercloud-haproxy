@@ -1,19 +1,36 @@
-FROM ubuntu:trusty
+FROM alpine:edge
 MAINTAINER Feng Honglin <hfeng@tutum.co>
 
-# Install pip and haproxy
-RUN echo 'deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main' >> /etc/apt/sources.list && \
-    echo 'deb-src http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu trusty main' >> /etc/apt/sources.list && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 505D97A41C61B9CD && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends haproxy python-pip && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install tini, haproxy, pip and the dockercloud-haproxy python package:
+RUN apk --no-cache add \
+    tini \
+    haproxy \
+    py-pip \
+  && apk --no-cache add --virtual deps git \
+  && pip install --upgrade \
+    pip \
+  && apk del deps \
+  # Clean up obsolete files:
+  && rm -rf \
+    # Clean up any temporary files:
+    /tmp/* \
+    # Clean up the pip cache:
+    /root/.cache \
+    # Remove any compiled python files (compile on demand):
+    `find / -regex '.*\.py[co]'`
 
 COPY reload.sh /reload.sh
 COPY . haproxy-src/
 RUN cd /haproxy-src/ && \
-    pip install .
+  pip install . \
+  # Clean up obsolete files:
+  && rm -rf \
+    # Clean up any temporary files:
+    /tmp/* \
+    # Clean up the pip cache:
+    /root/.cache \
+    # Remove any compiled python files (compile on demand):
+    `find / -regex '.*\.py[co]'`
 
 ENV RSYSLOG_DESTINATION=127.0.0.1 \
     MODE=http \
@@ -28,4 +45,5 @@ ENV RSYSLOG_DESTINATION=127.0.0.1 \
     HEALTH_CHECK="check"
 
 EXPOSE 80 443 1936
+ENTRYPOINT ["tini", "--"]
 CMD ["dockercloud-haproxy"]
