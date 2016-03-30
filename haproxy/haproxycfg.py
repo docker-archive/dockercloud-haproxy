@@ -80,6 +80,17 @@ class Haproxy(object):
             logger.info("Docker API error, regressing to legacy links mode: ", e)
             return None
         links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
+
+        try:
+            additional_services_str = os.environ.get("ADDITIONAL_SERVICES", "")
+            if additional_services_str!="":
+                additional_services = additional_services_str.split(",")
+                NewLinkHelper.get_additional_links(docker, additional_services, haproxy_container, \
+                                                   links, Haproxy.cls_linked_services)
+        except Exception as e:
+            logger.info("Error loading ADDITIONAL_SERVICES: %s" % str(e))
+            return None
+
         logger.info("Linked service: %s", ", ".join(NewLinkHelper.get_service_links_str(links)))
         logger.info("Linked container: %s", ", ".join(NewLinkHelper.get_container_links_str(links)))
         return links

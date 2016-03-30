@@ -152,6 +152,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|
 |STATS_PORT|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`
 |TIMEOUT|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|
+|ADDITIONAL_SERVICES||List of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network accessible to this containers.|
 
 ### Settings in linked application services###
 
