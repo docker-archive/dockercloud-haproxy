@@ -15,10 +15,10 @@ def get_new_links(docker, haproxy_container):
     links = _calc_links(docker, linked_compose_services, project)
     return links, ["%s_%s" % (project, service) for service in linked_compose_services]
 
+
 def get_additional_links(docker, additional_services, haproxy_container, links, linked_services):
     networks_data = docker.networks()
     haproxy_networks_ids = _find_container_networks_ids(haproxy_container, networks_data)
-    import pprint
     for _container in docker.containers():
         container_id = _container.get("Id", "")
         container = docker.inspect_container(container_id)
@@ -27,22 +27,23 @@ def get_additional_links(docker, additional_services, haproxy_container, links, 
         for _service in additional_services:
             terms = _service.strip().split(":")
             if len(terms) == 2:
-              if terms[0].strip() == compose_project and terms[1].strip() == compose_service:
-                  container_networks_ids = _find_container_networks_ids(container, networks_data)
-                  if set(container_networks_ids).intersection(haproxy_networks_ids):
-                      if _service not in linked_services:
-                          linked_services.append(_service)
-                      container_name = container.get("Name").lstrip("/")
-                      container_evvvars = _get_container_envvars(container)
-                      endpoints = _get_container_endpoints(container, container_name)
-                      links[container_id] = {"service_name": _service,
-                                             "container_envvars": container_evvvars,
-                                             "container_name": container_name,
-                                             "endpoints": endpoints,
-                                             "compose_service": compose_service,
-                                             "compose_project": compose_project}
-                  else:
-                      logger.info("Ignoring container '%s': no shared network with haproxy")
+                if terms[0].strip() == compose_project and terms[1].strip() == compose_service:
+                    container_networks_ids = _find_container_networks_ids(container, networks_data)
+                    if set(container_networks_ids).intersection(haproxy_networks_ids):
+                        if _service not in linked_services:
+                            linked_services.append(_service)
+                        container_name = container.get("Name").lstrip("/")
+                        container_evvvars = _get_container_envvars(container)
+                        endpoints = _get_container_endpoints(container, container_name)
+                        links[container_id] = {"service_name": _service,
+                                               "container_envvars": container_evvvars,
+                                               "container_name": container_name,
+                                               "endpoints": endpoints,
+                                               "compose_service": compose_service,
+                                               "compose_project": compose_project}
+                    else:
+                        logger.info("Ignoring container '%s': no shared network with haproxy")
+
 
 def _find_container_networks_ids(container, networks_data):
     ids = []
@@ -50,6 +51,7 @@ def _find_container_networks_ids(container, networks_data):
         if container['Id'] in network['Containers'].keys():
             ids.append(network['Id'])
     return ids
+
 
 def _calc_links(docker, linked_compose_services, project):
     links = {}
@@ -111,9 +113,9 @@ def _get_linked_compose_services(networks, project):
 
     haproxy_links = []
     for network in networks.itervalues():
-        network_links=network.get("Links", [])
+        network_links = network.get("Links", [])
         if network_links:
-          haproxy_links.extend(network_links)
+            haproxy_links.extend(network_links)
 
     linked_services = []
     for link in haproxy_links:

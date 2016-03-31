@@ -82,10 +82,9 @@ class Haproxy(object):
         links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
 
         try:
-            additional_services_str = os.environ.get("ADDITIONAL_SERVICES", "")
-            if additional_services_str!="":
-                additional_services = additional_services_str.split(",")
-                NewLinkHelper.get_additional_links(docker, additional_services, haproxy_container, \
+            if ADDITIONAL_SERVICES:
+                additional_services = ADDITIONAL_SERVICES.split(",")
+                NewLinkHelper.get_additional_links(docker, additional_services, haproxy_container,
                                                    links, Haproxy.cls_linked_services)
         except Exception as e:
             logger.info("Error loading ADDITIONAL_SERVICES: %s" % str(e))
@@ -132,8 +131,16 @@ class Haproxy(object):
 
     def _config_ssl(self):
         ssl_bind_string = ""
-        ssl_bind_string += self._config_ssl_certs()
-        ssl_bind_string += self._config_ssl_cacerts()
+        if CERT_FOLDER:
+            ssl_bind_string += "ssl crt %s" % CERT_FOLDER
+        else:
+            ssl_bind_string += self._config_ssl_certs()
+
+        if CA_CERT_FILE:
+            ssl_bind_string += " ca-file %s verify required" % CA_CERT_FILE
+        else:
+            ssl_bind_string += self._config_ssl_cacerts()
+
         if ssl_bind_string:
             self.ssl_bind_string = ssl_bind_string
 
