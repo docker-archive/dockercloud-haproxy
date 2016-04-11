@@ -151,7 +151,7 @@ class HaproxyConfigSSLTestCase(unittest.TestCase):
         haproxycfg.DEFAULT_CA_CERT = "cacert"
         Haproxy.cls_certs = []
         self.assertEqual(" ca-file /cacerts/cert0.pem verify required", haproxy._config_ssl_cacerts())
-        self.assertEqual(["cacert"], Haproxy.cls_certs)
+        self.assertEqual(["cacert"], Haproxy.cls_ca_certs)
         self.assertTrue(haproxy.ssl_updated)
 
         haproxy = Haproxy()

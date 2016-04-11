@@ -30,6 +30,7 @@ class Haproxy(object):
     cls_cfg = None
     cls_process = None
     cls_certs = []
+    cls_ca_certs = []
 
     def __init__(self, link_mode="", msg=""):
         logger.info("==========BEGIN==========")
@@ -167,8 +168,8 @@ class Haproxy(object):
         if DEFAULT_CA_CERT:
             cacerts.append(DEFAULT_CA_CERT)
         if cacerts:
-            if set(cacerts) != set(Haproxy.cls_certs):
-                Haproxy.cls_certs = copy.copy(cacerts)
+            if set(cacerts) != set(Haproxy.cls_ca_certs):
+                Haproxy.cls_ca_certs = copy.copy(cacerts)
                 self.ssl_updated = True
                 SslHelper.save_certs(CACERT_DIR, cacerts)
                 logger.info("SSL CA certificates are updated")
