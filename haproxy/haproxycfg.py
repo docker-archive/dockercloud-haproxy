@@ -30,6 +30,7 @@ class Haproxy(object):
     cls_cfg = None
     cls_process = None
     cls_certs = []
+    cls_ca_certs = []
 
     def __init__(self, link_mode="", msg=""):
         logger.info("==========BEGIN==========")
@@ -80,6 +81,16 @@ class Haproxy(object):
             logger.info("Docker API error, regressing to legacy links mode: ", e)
             return None
         links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
+
+        try:
+            if ADDITIONAL_SERVICES:
+                additional_services = ADDITIONAL_SERVICES.split(",")
+                NewLinkHelper.get_additional_links(docker, additional_services, haproxy_container,
+                                                   links, Haproxy.cls_linked_services)
+        except Exception as e:
+            logger.info("Error loading ADDITIONAL_SERVICES: %s" % str(e))
+            return None
+
         logger.info("Linked service: %s", ", ".join(NewLinkHelper.get_service_links_str(links)))
         logger.info("Linked container: %s", ", ".join(NewLinkHelper.get_container_links_str(links)))
         return links
@@ -121,8 +132,16 @@ class Haproxy(object):
 
     def _config_ssl(self):
         ssl_bind_string = ""
-        ssl_bind_string += self._config_ssl_certs()
-        ssl_bind_string += self._config_ssl_cacerts()
+        if CERT_FOLDER:
+            ssl_bind_string += "ssl crt %s" % CERT_FOLDER
+        else:
+            ssl_bind_string += self._config_ssl_certs()
+
+        if CA_CERT_FILE:
+            ssl_bind_string += " ca-file %s verify required" % CA_CERT_FILE
+        else:
+            ssl_bind_string += self._config_ssl_cacerts()
+
         if ssl_bind_string:
             self.ssl_bind_string = ssl_bind_string
 
@@ -149,8 +168,8 @@ class Haproxy(object):
         if DEFAULT_CA_CERT:
             cacerts.append(DEFAULT_CA_CERT)
         if cacerts:
-            if set(cacerts) != set(Haproxy.cls_certs):
-                Haproxy.cls_certs = copy.copy(cacerts)
+            if set(cacerts) != set(Haproxy.cls_ca_certs):
+                Haproxy.cls_ca_certs = copy.copy(cacerts)
                 self.ssl_updated = True
                 SslHelper.save_certs(CACERT_DIR, cacerts)
                 logger.info("SSL CA certificates are updated")

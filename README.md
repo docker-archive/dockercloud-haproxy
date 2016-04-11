@@ -138,7 +138,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |EXTRA_BIND_SETTINGS|<empty>|comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible value: `443:accept-proxy, 80:name http`|
 |EXTRA_DEFAULT_SETTINGS|<empty>|comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
 |EXTRA_GLOBAL_SETTINGS|<empty>|comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
-|EXTRA_SSL_CERTS||List of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
+|EXTRA_SSL_CERTS||list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
 |HEALTH_CHECK|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
 |HTTP_BASIC_AUTH|<empty>|a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|
 |MAXCONN|4096|sets the maximum per-process number of concurrent connections.|
@@ -152,6 +152,9 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|
 |STATS_PORT|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`
 |TIMEOUT|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|
+|ADDITIONAL_SERVICES||list of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network accessible to this containers.|
+|CA_CERT_FILE|the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|
+|CERT_FOLDER|the path of certificates. This allows you to mount your certificate files directly from a volume instead of from envvars. If set, `DEFAULT_SSL_CERT` and `SSL_CERT` from linked services are ignored. Possible value:`/certs/`|
 
 ### Settings in linked application services###
 
@@ -159,9 +162,9 @@ Settings here can overwrite the settings in HAProxy, which are only applied to t
 
 |env var|description|
 |:-----:|:----------|
-|APPSESSION|sticky session option. possible value `JSESSIONID len 52 timeout 3h`. See:[HAProxy:appsession](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-appsession)|
+|APPSESSION|sticky session option, possible value `JSESSIONID len 52 timeout 3h`. See:[HAProxy:appsession](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-appsession)|
 |BALANCE|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
-|COOKIE|sticky session option. possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
+|COOKIE|sticky session option. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
 |DEFAULT_SSL_CERT|similar to SSL_CERT, but stores the pem file at `/certs/cert0.pem` as the default ssl certs. If multiple `DEFAULT_SSL_CERT` are specified in linked services and HAProxy, the behavior is undefined|
 |EXCLUDE_PORTS|comma separated port numbers(e.g. 3306, 3307). By default, HAProxy will add all the ports exposed by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
 |EXTRA_SETTINGS|comma-separated string of extra settings, and each part will be appended to either related backend section or listen session in the configuration file. To escape comma, use `\,`. Possible value: `balance source`|
@@ -344,6 +347,13 @@ Use the following:
     docker run -d -e FORCE_SSL=yes -e SSL_CERT="YOUR_CERT_TEXT" --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 443:443 dockercloud/haproxy
 
+#### I want to load my SSL certificate from volume instead of passing it through environment variable
+
+You can use `CERT_FOLDER` envvar to specify which folder the certificates are mounted in the container, using the following:
+
+    docker run -d --name webapp dockercloud/hello-world
+    docker run -d --link webapp:webapp -e CERT_FOLDER="/certs/" -v $(pwd)/cert1.pem:/certs/cert1.pem -p 443:443 dockercloud/haproxy
+
 #### I want to set up virtual host routing by domain
 
 Virtual hosts can be configured by the proxy reading linked container environment variables (`VIRTUAL_HOST`). Here is an example:
@@ -426,5 +436,3 @@ In most cases, `dockercloud/haproxy` will configure itself automatically when th
 
 * `docker exec <haproxy_id> /reload.sh`, if you are on the node where dockercloud/haproxy deploys
 * `docker-cloud exec <haproxy_uuid> /reload.sh`, if you use docker-cloud cli
-
-Note: when `reload.sh` is invoked, it doesn't necessarily mean that HAProxy will be restarted. In fact, `dockercloud/haproxy` will try to get the current information of the the service and calculate a new configuration. HAProxy will only be restarted when the newly generated configuration differs from the current one.
