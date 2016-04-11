@@ -45,7 +45,11 @@ def on_websocket_close():
 
 
 def on_user_reload(signum, frame):
-    run_haproxy("User reload")
+    Haproxy.cls_cfg = None
+    if config.LINK_MODE == "legacy":
+        logger.info("User reload is not supported in legacy link mode")
+    else:
+        run_haproxy("User reload")
 
 
 def listen_dockercloud_events():

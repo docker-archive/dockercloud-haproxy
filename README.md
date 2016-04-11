@@ -436,5 +436,3 @@ In most cases, `dockercloud/haproxy` will configure itself automatically when th
 
 * `docker exec <haproxy_id> /reload.sh`, if you are on the node where dockercloud/haproxy deploys
 * `docker-cloud exec <haproxy_uuid> /reload.sh`, if you use docker-cloud cli
-
-Note: when `reload.sh` is invoked, it doesn't necessarily mean that HAProxy will be restarted. In fact, `dockercloud/haproxy` will try to get the current information of the the service and calculate a new configuration. HAProxy will only be restarted when the newly generated configuration differs from the current one.
