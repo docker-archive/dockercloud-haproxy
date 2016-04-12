@@ -182,39 +182,49 @@ class FrontendHelperTestCase(unittest.TestCase):
         self.assertTrue(ssl)
 
     def test_config_default_front(self):
-        cfg, monitor_uri_configured = config_default_frontend("ssl /certs/")
-        self.assertEqual(OrderedDict([('frontend default_frontend',
+        cfg, monitor_uri_configured = config_default_frontend("ssl crt /certs/")
+        self.assertEqual(OrderedDict([('frontend default_port_80',
                                        ['bind :80',
-                                        'bind :443 ssl /certs/',
+                                        'reqadd X-Forwarded-Proto:\\ http',
+                                        'maxconn 55555',
+                                        'default_backend default_service']),
+                                      ('frontend default_port_443',
+                                       ['bind :443 ssl crt /certs/',
                                         'reqadd X-Forwarded-Proto:\\ https',
                                         'maxconn 55555',
                                         'default_backend default_service'])]), cfg)
         self.assertFalse(monitor_uri_configured)
 
         cfg, monitor_uri_configured = config_default_frontend("")
-        self.assertEqual(OrderedDict([('frontend default_frontend',
+        self.assertEqual(OrderedDict([('frontend default_port_80',
                                        ['bind :80',
+                                        'reqadd X-Forwarded-Proto:\\ http',
                                         'maxconn 55555',
-                                        'default_backend default_service'])]), cfg)
+                                        'default_backend default_service'])
+                                      ]), cfg)
         self.assertFalse(monitor_uri_configured)
 
         frontend_helper.MONITOR_PORT = "80"
         cfg, monitor_uri_configured = config_default_frontend("")
-        self.assertEqual(OrderedDict([('frontend default_frontend',
+        self.assertEqual(OrderedDict([('frontend default_port_80',
                                        ['bind :80',
-                                        "monitor-uri %s" % frontend_helper.MONITOR_URI,
-                                        'maxconn 55555',
-                                        'default_backend default_service'])]), cfg)
+                                        'reqadd X-Forwarded-Proto:\\ http',
+                                        'monitor-uri /ping',
+                                        'maxconn 55555', 'default_backend default_service'])]), cfg)
         self.assertTrue(monitor_uri_configured)
 
         frontend_helper.MONITOR_PORT = "443"
         frontend_helper.EXTRA_BIND_SETTINGS = {"443": "accept-proxy"}
-        cfg, monitor_uri_configured = config_default_frontend("ssl /certs/")
-        self.assertEqual(OrderedDict([('frontend default_frontend',
+        cfg, monitor_uri_configured = config_default_frontend("ssl crt /certs/")
+        self.assertEqual(OrderedDict([('frontend default_port_80',
                                        ['bind :80',
-                                        'bind :443 ssl /certs/ accept-proxy',
+                                        'reqadd X-Forwarded-Proto:\\ http',
+                                        'maxconn 55555',
+                                        'default_backend default_service']),
+                                      ('frontend default_port_443',
+                                       ['bind :443 ssl crt /certs/ accept-proxy',
                                         'reqadd X-Forwarded-Proto:\\ https',
-                                        "monitor-uri %s" % frontend_helper.MONITOR_URI,
+                                        'monitor-uri /ping',
                                         'maxconn 55555',
                                         'default_backend default_service'])]), cfg)
         self.assertTrue(monitor_uri_configured)
