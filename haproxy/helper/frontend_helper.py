@@ -96,6 +96,8 @@ def config_common_part(port, ssl_bind_string, vhosts):
     frontend_section.append("bind :%s" % bind_string)
     if ssl:
         frontend_section.append("reqadd X-Forwarded-Proto:\ https")
+    else:
+        frontend_section.append("reqadd X-Forwarded-Proto:\ http")
 
     # add websocket acl rule
     frontend_section.append("acl is_websocket hdr(Upgrade) -i WebSocket")

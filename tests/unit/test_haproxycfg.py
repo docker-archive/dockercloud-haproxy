@@ -284,6 +284,7 @@ class HaproxyConfigFrontendTestCase(unittest.TestCase):
             {'service_alias': 'HW', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80'}]
         self.assertEqual(OrderedDict([('frontend port_80',
                                        ['bind :80',
+                                        'reqadd X-Forwarded-Proto:\\ http',
                                         'acl is_websocket hdr(Upgrade) -i WebSocket',
                                         'acl host_rule_1 hdr(host) -i a.com',
                                         'acl host_rule_1_port hdr(host) -i a.com:80',

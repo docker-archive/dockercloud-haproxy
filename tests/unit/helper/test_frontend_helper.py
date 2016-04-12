@@ -25,8 +25,9 @@ class FrontendHelperTestCase(unittest.TestCase):
 
     def test_config_frontend_with_virtual_host_without_monitoring_uri_added(self):
         vhosts = [{'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80'}]
-        cfg, monitor_uri_configured = config_frontend_with_virtual_host(vhosts, "ssl /certs/")
+        cfg, monitor_uri_configured = config_frontend_with_virtual_host(vhosts, "ssl crt /certs/")
         result = OrderedDict([('frontend port_80', ['bind :80',
+                                                    'reqadd X-Forwarded-Proto:\\ http',
                                                     'acl is_websocket hdr(Upgrade) -i WebSocket',
                                                     'acl host_rule_1 hdr(host) -i a.com',
                                                     'acl host_rule_1_port hdr(host) -i a.com:80',
@@ -36,8 +37,9 @@ class FrontendHelperTestCase(unittest.TestCase):
 
     def test_config_frontend_with_virtual_host_with_path_rules(self):
         vhosts = [{'service_alias': 'web-a', 'path': '/path/*', 'host': '*', 'scheme': 'http', 'port': '80'}]
-        cfg, monitor_uri_configured = config_frontend_with_virtual_host(vhosts, "ssl /certs/")
+        cfg, monitor_uri_configured = config_frontend_with_virtual_host(vhosts, "ssl crt /certs/")
         result = OrderedDict([('frontend port_80', ['bind :80',
+                                                    'reqadd X-Forwarded-Proto:\\ http',
                                                     'acl is_websocket hdr(Upgrade) -i WebSocket',
                                                     'acl host_rule_1 hdr_reg(host) -i ^.*$',
                                                     'acl host_rule_1_port hdr_reg(host) -i ^.*:80$',
@@ -49,9 +51,10 @@ class FrontendHelperTestCase(unittest.TestCase):
 
     def test_config_frontend_with_virtual_host_with_monitoring_uri_added(self):
         vhosts = [{'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '9999'}]
-        cfg, monitor_uri_configured = config_frontend_with_virtual_host(vhosts, "ssl /certs/")
+        cfg, monitor_uri_configured = config_frontend_with_virtual_host(vhosts, "ssl crt /certs/")
         result = OrderedDict([('frontend port_9999',
                                ['bind :9999',
+                                'reqadd X-Forwarded-Proto:\\ http',
                                 'acl is_websocket hdr(Upgrade) -i WebSocket',
                                 'monitor-uri /ping',
                                 'acl host_rule_1 hdr(host) -i a.com',
@@ -122,26 +125,27 @@ class FrontendHelperTestCase(unittest.TestCase):
 
     @mock.patch("haproxy.helper.frontend_helper.get_bind_string")
     def test_config_common_part_with_ssl(self, mock_get_bind_string):
-        mock_get_bind_string.return_value = ("443 ssl /certs/", True)
-        frontend_section, monitor_uri_configured = config_common_part("443", "ssl /certs/", [])
+        mock_get_bind_string.return_value = ("443 ssl crt /certs/", True)
+        frontend_section, monitor_uri_configured = config_common_part("443", "ssl crt /certs/", [])
         self.assertEqual(
-            ["bind :443 ssl /certs/", "reqadd X-Forwarded-Proto:\ https", "acl is_websocket hdr(Upgrade) -i WebSocket"],
+            ["bind :443 ssl crt /certs/", "reqadd X-Forwarded-Proto:\ https", "acl is_websocket hdr(Upgrade) -i WebSocket"],
             frontend_section)
         self.assertFalse(monitor_uri_configured)
 
     @mock.patch("haproxy.helper.frontend_helper.get_bind_string")
     def test_config_common_part_without_ssl(self, mock_get_bind_string):
         mock_get_bind_string.return_value = ("80", False)
-        frontend_section, monitor_uri_configured = config_common_part("80", "ssl /certs/", [])
-        self.assertEqual(["bind :80", "acl is_websocket hdr(Upgrade) -i WebSocket"],
+        frontend_section, monitor_uri_configured = config_common_part("80", "ssl crt /certs/", [])
+        self.assertEqual(["bind :80", 'reqadd X-Forwarded-Proto:\\ http',
+                          "acl is_websocket hdr(Upgrade) -i WebSocket"],
                          frontend_section)
         self.assertFalse(monitor_uri_configured)
 
     @mock.patch("haproxy.helper.frontend_helper.get_bind_string")
     def test_config_common_part_with_ssl(self, mock_get_bind_string):
-        mock_get_bind_string.return_value = ("9999 ssl /certs/", True)
-        frontend_section, monitor_uri_configured = config_common_part("9999", "ssl /certs/", [])
-        self.assertEqual(["bind :9999 ssl /certs/", "reqadd X-Forwarded-Proto:\ https",
+        mock_get_bind_string.return_value = ("9999 ssl crt /certs/", True)
+        frontend_section, monitor_uri_configured = config_common_part("9999", "ssl crt /certs/", [])
+        self.assertEqual(["bind :9999 ssl crt /certs/", "reqadd X-Forwarded-Proto:\ https",
                           "acl is_websocket hdr(Upgrade) -i WebSocket", "monitor-uri %s" % frontend_helper.MONITOR_URI],
                          frontend_section)
         self.assertTrue(monitor_uri_configured)
@@ -149,10 +153,11 @@ class FrontendHelperTestCase(unittest.TestCase):
     @mock.patch("haproxy.helper.frontend_helper.get_bind_string")
     def test_config_common_part_with_monitor_uri(self, mock_get_bind_string):
         mock_get_bind_string.return_value = ("9999", False)
-        frontend_section, monitor_uri_configured = config_common_part("9999", "ssl /certs/", [])
-        self.assertEqual(["bind :9999", "acl is_websocket hdr(Upgrade) -i WebSocket",
-                          "monitor-uri %s" % frontend_helper.MONITOR_URI],
-                         frontend_section)
+        frontend_section, monitor_uri_configured = config_common_part("9999", "ssl crt /certs/", [])
+        self.assertEqual(
+            ["bind :9999", 'reqadd X-Forwarded-Proto:\\ http', "acl is_websocket hdr(Upgrade) -i WebSocket",
+             "monitor-uri %s" % frontend_helper.MONITOR_URI],
+            frontend_section)
         self.assertTrue(monitor_uri_configured)
 
     def test_get_bind_string(self):
@@ -161,24 +166,24 @@ class FrontendHelperTestCase(unittest.TestCase):
                   {'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'https', 'port': '443'},
                   {'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'ws', 'port': '5000'},
                   {'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'wss', 'port': '4443'}]
-        bind, ssl = get_bind_string("80", "ssl /certs/", vhosts)
+        bind, ssl = get_bind_string("80", "ssl crt /certs/", vhosts)
         self.assertEqual("80", bind)
         self.assertFalse(ssl)
 
-        bind, ssl = get_bind_string("8888", "ssl /certs/", vhosts)
+        bind, ssl = get_bind_string("8888", "ssl crt /certs/", vhosts)
         self.assertEqual("8888 name http", bind)
         self.assertFalse(ssl)
 
-        bind, ssl = get_bind_string("443", "ssl /certs/", vhosts)
-        self.assertEqual("443 ssl /certs/", bind)
+        bind, ssl = get_bind_string("443", "ssl crt /certs/", vhosts)
+        self.assertEqual("443 ssl crt /certs/", bind)
         self.assertTrue(ssl)
 
-        bind, ssl = get_bind_string("5000", "ssl /certs/", vhosts)
+        bind, ssl = get_bind_string("5000", "ssl crt /certs/", vhosts)
         self.assertEqual("5000", bind)
         self.assertFalse(ssl)
 
-        bind, ssl = get_bind_string("4443", "ssl /certs/", vhosts)
-        self.assertEqual("4443 accept-proxy ssl /certs/", bind)
+        bind, ssl = get_bind_string("4443", "ssl crt /certs/", vhosts)
+        self.assertEqual("4443 accept-proxy ssl crt /certs/", bind)
         self.assertTrue(ssl)
 
     def test_config_default_front(self):
