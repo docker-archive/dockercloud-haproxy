@@ -395,6 +395,24 @@ curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://we
 curl -sSIL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org > /dev/null
 echo
 
+echo "=> Testing EXTRA_FRONTEND_SETTINGS"
+rm_container web-a web-b lb
+docker run -d --name web-a -e HOSTNAME=web-a dockercloud/hello-world
+docker run -d --name lb --link web-a:web-a -e "EXTRA_FRONTEND_SETTINGS_80=acl rule_a hdr(host) web-a.com, http-request redirect code 301 location http://www.google.com if rule_a" -p 80:80 haproxy
+wait_for_startup http://${DOCKER_HOST_IP}
+curl -I --resolve web-a.com:80:${DOCKER_HOST_IP} http://web-a.com 2>&1 | grep -iF "Location: http://www.google.com" > /dev/null
+curl ${DOCKER_HOST_IP}  2>&1 | grep -iF "My hostname is web-a" > /dev/null
+echo
+
+echo "=> Testing EXTRA_FRONTEND_SETTINGS with virtual host"
+rm_container web-a web-b lb
+docker run -d --name web-a -e HOSTNAME=web-a -e VIRUTAL_HOST=web-a.org dockercloud/hello-world
+docker run -d --name lb --link web-a:web-a -e "EXTRA_FRONTEND_SETTINGS_80=acl rule_a hdr(host) web-a.com, http-request redirect code 301 location http://www.google.com if rule_a" -p 80:80 haproxy
+wait_for_startup http://${DOCKER_HOST_IP}
+curl -I --resolve web-a.com:80:${DOCKER_HOST_IP} http://web-a.com 2>&1 | grep -iF "Location: http://www.google.com" > /dev/null
+curl --resolve web-a.org:80:${DOCKER_HOST_IP} http://web-a.org 2>&1 | grep -iF "My hostname is web-a" > /dev/null
+echo
+
 echo "=> Clean up"
 cleanup
 echo "=> Done!"

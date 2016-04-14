@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from haproxy.config import EXTRA_BIND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN
+from haproxy.config import EXTRA_BIND_SETTINGS, EXTRA_FRONTEND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN
 
 
 def check_require_default_route(routes, routes_added):
@@ -98,6 +98,8 @@ def config_common_part(port, ssl_bind_string, vhosts):
         frontend_section.append("reqadd X-Forwarded-Proto:\ https")
     else:
         frontend_section.append("reqadd X-Forwarded-Proto:\ http")
+    if EXTRA_FRONTEND_SETTINGS and port in EXTRA_FRONTEND_SETTINGS:
+        frontend_section.extend(EXTRA_FRONTEND_SETTINGS[port])
 
     # add websocket acl rule
     frontend_section.append("acl is_websocket hdr(Upgrade) -i WebSocket")
@@ -128,7 +130,8 @@ def config_default_frontend(ssl_bind_string):
     monitor_uri_configured = False
     frontend = [("bind :80 %s" % EXTRA_BIND_SETTINGS.get('80', "")).strip(),
                 "reqadd X-Forwarded-Proto:\ http"]
-
+    if "80" in EXTRA_FRONTEND_SETTINGS:
+        frontend.extend(EXTRA_FRONTEND_SETTINGS["80"])
     if MONITOR_URI and MONITOR_PORT == '80':
         frontend.append("monitor-uri %s" % MONITOR_URI)
         monitor_uri_configured = True
@@ -139,7 +142,9 @@ def config_default_frontend(ssl_bind_string):
 
     if ssl_bind_string:
         ssl_frontend = [("bind :443 %s %s" % (ssl_bind_string, EXTRA_BIND_SETTINGS.get('443', ""))).strip(),
-                         "reqadd X-Forwarded-Proto:\ https"]
+                        "reqadd X-Forwarded-Proto:\ https"]
+        if "443" in EXTRA_FRONTEND_SETTINGS:
+            ssl_frontend.extend(EXTRA_FRONTEND_SETTINGS["443"])
         if MONITOR_URI and (MONITOR_PORT == '443'):
             ssl_frontend.append("monitor-uri %s" % MONITOR_URI)
             monitor_uri_configured = True
