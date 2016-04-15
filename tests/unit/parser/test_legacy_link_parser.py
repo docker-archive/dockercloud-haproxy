@@ -91,6 +91,34 @@ class SpecsTestCase(unittest.TestCase):
         specs.details = self.details
         self.assertEqual(self.routes, specs._parse_routes(self.details, self.envvars))
 
+        envvars = {'WORLD_1_ENV_MODE': 'http',
+                   'HELLO_1_ENV_MODE': 'http',
+                   'HELLO_1_ENV_VIRTUAL_HOST': 'b.com',
+                   'WORLD_1_PORT_80_TCP': 'tcp://10.7.0.3:80',
+                   'WORLD_1_ENV_VIRTUAL_HOST': 'a.com',
+                   'HELLO_1_PORT_80_TCP': 'tcp://10.7.0.1:80',
+                   'DUPLICATED_PORT_80_TCP': 'tcp://10.7.0.1:80'}
+        details = {'WORLD': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': None,
+                             'gzip_compression_type': None, 'http_check': None, 'virtual_host_weight': 0,
+                             'health_check': None, 'cookie': None, 'virtual_host': 'a.com', 'force_ssl': None,
+                             'tcp_ports': [], 'balance': None, 'extra_settings': None, 'appsession': None,
+                             'option': []},
+                   'HELLO': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': None,
+                             'gzip_compression_type': None, 'http_check': None, 'virtual_host_weight': 0,
+                             'health_check': None, 'cookie': None, 'virtual_host': 'b.com', 'force_ssl': None,
+                             'tcp_ports': [], 'balance': None, 'extra_settings': None, 'appsession': None,
+                             'option': []},
+                   'DUPLICATED': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': None,
+                                  'gzip_compression_type': None, 'http_check': None, 'virtual_host_weight': 0,
+                                  'health_check': None, 'cookie': None, 'virtual_host': 'b.com', 'force_ssl': None,
+                                  'tcp_ports': [], 'balance': None, 'extra_settings': None, 'appsession': None,
+                                  'option': []}
+                   }
+
+        routes = {'WORLD': [{'container_name': 'WORLD_1', 'proto': 'tcp', 'port': '80', 'addr': '10.7.0.3'}],
+                  'DUPLICATED': [{'container_name': 'DUPLICATED', 'proto': 'tcp', 'port': '80', 'addr': '10.7.0.1'}]}
+        self.assertEqual(routes, specs._parse_routes(details, envvars))
+
 
 class LegacyLinkEnvParserTestCase(unittest.TestCase):
     def test_parse(self):
