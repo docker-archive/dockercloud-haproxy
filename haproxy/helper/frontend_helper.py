@@ -94,20 +94,27 @@ def config_common_part(port, ssl_bind_string, vhosts):
     frontend_section = []
     bind_string, ssl = get_bind_string(port, ssl_bind_string, vhosts)
     frontend_section.append("bind :%s" % bind_string)
+
+    # add x-forwarded-porto header
     if ssl:
         frontend_section.append("reqadd X-Forwarded-Proto:\ https")
     else:
         frontend_section.append("reqadd X-Forwarded-Proto:\ http")
-    if EXTRA_FRONTEND_SETTINGS and port in EXTRA_FRONTEND_SETTINGS:
-        frontend_section.extend(EXTRA_FRONTEND_SETTINGS[port])
 
-    # add websocket acl rule
-    frontend_section.append("acl is_websocket hdr(Upgrade) -i WebSocket")
+    # add maxconn
+    frontend_section.append("maxconn %s" % MAXCONN)
 
     # add monitor uri
     if port == MONITOR_PORT and MONITOR_URI:
         frontend_section.append("monitor-uri %s" % MONITOR_URI)
         monitor_uri_configured = True
+
+    # add extra frontend setting
+    if EXTRA_FRONTEND_SETTINGS and port in EXTRA_FRONTEND_SETTINGS:
+        frontend_section.extend(EXTRA_FRONTEND_SETTINGS[port])
+
+    # add websocket acl rule
+    frontend_section.append("acl is_websocket hdr(Upgrade) -i WebSocket")
     return frontend_section, monitor_uri_configured
 
 
@@ -129,27 +136,29 @@ def config_default_frontend(ssl_bind_string):
     cfg = OrderedDict()
     monitor_uri_configured = False
     frontend = [("bind :80 %s" % EXTRA_BIND_SETTINGS.get('80', "")).strip(),
-                "reqadd X-Forwarded-Proto:\ http"]
-    if "80" in EXTRA_FRONTEND_SETTINGS:
-        frontend.extend(EXTRA_FRONTEND_SETTINGS["80"])
+                "reqadd X-Forwarded-Proto:\ http", "maxconn %s" % MAXCONN]
+
     if MONITOR_URI and MONITOR_PORT == '80':
         frontend.append("monitor-uri %s" % MONITOR_URI)
         monitor_uri_configured = True
 
-    frontend.append("maxconn %s" % MAXCONN)
+    if "80" in EXTRA_FRONTEND_SETTINGS:
+        frontend.extend(EXTRA_FRONTEND_SETTINGS["80"])
+
     frontend.append("default_backend default_service")
     cfg["frontend default_port_80"] = frontend
 
     if ssl_bind_string:
         ssl_frontend = [("bind :443 %s %s" % (ssl_bind_string, EXTRA_BIND_SETTINGS.get('443', ""))).strip(),
-                        "reqadd X-Forwarded-Proto:\ https"]
-        if "443" in EXTRA_FRONTEND_SETTINGS:
-            ssl_frontend.extend(EXTRA_FRONTEND_SETTINGS["443"])
+                        "reqadd X-Forwarded-Proto:\ https", "maxconn %s" % MAXCONN]
+
         if MONITOR_URI and (MONITOR_PORT == '443'):
             ssl_frontend.append("monitor-uri %s" % MONITOR_URI)
             monitor_uri_configured = True
 
-        ssl_frontend.append("maxconn %s" % MAXCONN)
+        if "443" in EXTRA_FRONTEND_SETTINGS:
+            ssl_frontend.extend(EXTRA_FRONTEND_SETTINGS["443"])
+
         ssl_frontend.append("default_backend default_service")
         cfg["frontend default_port_443"] = ssl_frontend
 
