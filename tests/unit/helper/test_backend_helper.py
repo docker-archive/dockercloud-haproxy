@@ -191,9 +191,3 @@ class BackendHelperTestCase(unittest.TestCase):
             ["acl need_auth http_auth(haproxy_userlist)", "http-request auth realm haproxy_basic_auth if !need_auth"],
             get_basic_auth_setting('something'))
         self.assertEqual([], get_basic_auth_setting(""))
-
-    def test_check_backend_has_routes(self):
-        self.assertTrue(check_backend_has_routes(["mode http",
-                                                  "balance source",
-                                                  "server HELLO_1 10.7.0.4:80 check inter 2000 rise 2 fall 3"]))
-        self.assertFalse(check_backend_has_routes(["mode http", "balance source"]))

@@ -156,10 +156,3 @@ def get_basic_auth_setting(basic_auth):
         setting.append("acl need_auth http_auth(haproxy_userlist)")
         setting.append("http-request auth realm haproxy_basic_auth if !need_auth")
     return setting
-
-
-def check_backend_has_routes(backend):
-    for b in backend:
-        if b.startswith("server"):
-            return True
-    return False
