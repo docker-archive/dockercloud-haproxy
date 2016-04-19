@@ -1,36 +1,16 @@
 FROM alpine:edge
 MAINTAINER Feng Honglin <hfeng@tutum.co>
 
-# Install tini, haproxy, pip and the dockercloud-haproxy python package:
-RUN apk --no-cache add \
-    tini \
-    haproxy \
-    py-pip \
-  && apk --no-cache add --virtual deps git \
-  && pip install --upgrade \
-    pip \
-  && apk del deps \
-  # Clean up obsolete files:
-  && rm -rf \
-    # Clean up any temporary files:
-    /tmp/* \
-    # Clean up the pip cache:
-    /root/.cache \
-    # Remove any compiled python files (compile on demand):
-    `find / -regex '.*\.py[co]'`
+COPY . /haproxy-src
 
-COPY reload.sh /reload.sh
-COPY . haproxy-src/
-RUN cd /haproxy-src/ && \
-  pip install . \
-  # Clean up obsolete files:
-  && rm -rf \
-    # Clean up any temporary files:
-    /tmp/* \
-    # Clean up the pip cache:
-    /root/.cache \
-    # Remove any compiled python files (compile on demand):
-    `find / -regex '.*\.py[co]'`
+RUN apk update && \
+    apk --no-cache add tini haproxy py-pip build-base python-dev ca-certificates && \
+    cp /haproxy-src/reload.sh /reload.sh && \
+    cd /haproxy-src && \
+    pip install -r requirements.txt && \
+    pip install . && \
+    apk del build-base python-dev && \
+    rm -rf "/tmp/*" "/root/.cache" `find / -regex '.*\.py[co]'`
 
 ENV RSYSLOG_DESTINATION=127.0.0.1 \
     MODE=http \

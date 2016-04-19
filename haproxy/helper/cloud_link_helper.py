@@ -1,9 +1,11 @@
-from multiprocessing.pool import ThreadPool
+from gevent.pool import Pool
 
 from haproxy.config import SERVICE_NAME_MATCH
 from haproxy.utils import get_uuid_from_resource_uri, fetch_remote_obj
 
 LINKED_CONTAINER_CACHE = {}
+
+pool = Pool(size=5)
 
 
 def get_cloud_links(haproxy_container):
@@ -41,7 +43,7 @@ def _get_new_added_link_uri(container_object_cache, links):
 
 
 def _get_container_object_from_uri(container_uris):
-    pool = ThreadPool(processes=10)
+    global pool
     container_objects = pool.map(fetch_remote_obj, container_uris)
     return container_objects
 

@@ -76,7 +76,7 @@ rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME="web-a" dockercloud/hello-world
 docker run -d --name lb --link web-a:web-a -e DEFAULT_SSL_CERT="$(awk 1 ORS='\\n' cert1.pem)" -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
-curl -sSfL --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF "SSL certificate problem" > /dev/null
+curl -sSfL --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1> /dev/null && exit $?
 curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
@@ -86,9 +86,9 @@ docker run -d --name web-a -e HOSTNAME="web-a" dockercloud/hello-world
 docker run -d --name lb --link web-a:web-a -e DEFAULT_SSL_CERT="$(awk 1 ORS='\\n' cert1.pem)" -e CA_CERT="$(awk 1 ORS='\\n' ca0.pem)" -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
 echo "   Sending request without certificate"
-curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'handshake' > /dev/null
+curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null && exit $?
 echo "   Sending request with a wrong certificate"
-curl -sSfL --cacert ca1.pem --cert cert1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'alert unknown ca' > /dev/null
+curl -sSfL --cacert ca1.pem --cert cert1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null && exit $?
 echo "   Sending request with the correct certificate"
 curl -sSfL --cacert ca1.pem --cert cert0.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
@@ -98,7 +98,7 @@ rm_container web-a lb
 docker run -d --name web-a -e HOSTNAME="web-a" dockercloud/hello-world
 docker run -d --name lb --link web-a:web-a -e CERT_FOLDER="/certs/" -v $(pwd)/cert1.pem:/certs/cert1.pem -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
-curl -sSfL --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF "SSL certificate problem" > /dev/null
+curl -sSfL --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null && exit $?
 curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
 
@@ -108,9 +108,9 @@ docker run -d --name web-a -e HOSTNAME="web-a" dockercloud/hello-world
 docker run -d --name lb --link web-a:web-a -e CERT_FOLDER="/certs/" -v $(pwd)/cert1.pem:/certs/cert1.pem -e CA_CERT_FILE="/cacert/ca0.pem"  -v $(pwd)/ca0.pem:/cacert/ca0.pem -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
 echo "   Sending request without certificate"
-curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'handshake' > /dev/null
+curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null && exit $?
 echo "   Sending request with a wrong certificate"
-curl -sSfL --cacert ca1.pem --cert cert1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null | grep 'alert unknown ca' > /dev/null
+curl -sSfL --cacert ca1.pem --cert cert1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null && exit $?
 echo "   Sending request with the correct certificate"c
 curl -sSfL --cacert ca1.pem --cert cert0.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
 echo
@@ -132,9 +132,9 @@ docker run -d --name web-b -e HOSTNAME="web-b" -e VIRTUAL_HOST="https://web-b.or
 docker run -d --name lb  --link web-a:web-a --link web-b:web-b -p 443:443 haproxy
 wait_for_startup https://${DOCKER_HOST_IP}
 curl -sSfL --cacert ca1.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 | grep -iF 'My hostname is web-a' > /dev/null
-curl -sSfL --cacert ca2.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org  2>&1 2>&1 | grep -iF "SSL certificate problem: self signed certificate" > /dev/null
+curl -sSfL --cacert ca2.pem --resolve web-a.org:443:${DOCKER_HOST_IP} https://web-a.org 2>&1 > /dev/null && exit $?
 curl -sSfL --cacert ca2.pem --resolve web-b.org:443:${DOCKER_HOST_IP} https://web-b.org 2>&1 | grep -iF 'My hostname is web-b' > /dev/null
-curl -sSfL --cacert ca1.pem --resolve web-b.org:443:${DOCKER_HOST_IP} https://web-b.org 2>&1 2>&1 | grep -iF "SSL certificate problem: self signed certificate" > /dev/null
+curl -sSfL --cacert ca1.pem --resolve web-b.org:443:${DOCKER_HOST_IP} https://web-b.org 2>&1 > /dev/null && exit $?
 echo
 
 echo "=> Test multiple virtual host entries"

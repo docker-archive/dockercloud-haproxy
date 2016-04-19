@@ -13,6 +13,10 @@ from haproxy import __version__
 from haproxycfg import run_haproxy
 from utils import save_to_file
 
+
+from gevent import monkey
+monkey.patch_all()
+
 dockercloud.user_agent = "dockercloud-haproxy/%s" % __version__
 
 logger = logging.getLogger("haproxy")
