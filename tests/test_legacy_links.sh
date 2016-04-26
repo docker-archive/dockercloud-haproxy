@@ -43,7 +43,7 @@ cleanup
 echo
 
 echo "=> Building haproxy image"
-docker build -t haproxy .
+docker tag this haproxy || docker build -t haproxy .
 echo
 
 echo "=> Creating certificates"
