@@ -1,36 +1,16 @@
 FROM alpine:edge
 MAINTAINER Feng Honglin <hfeng@tutum.co>
 
-# Install tini, haproxy, pip and the dockercloud-haproxy python package:
-RUN apk --no-cache add \
-    tini \
-    haproxy \
-    py-pip \
-  && apk --no-cache add --virtual deps git \
-  && pip install --upgrade \
-    pip \
-  && apk del deps \
-  # Clean up obsolete files:
-  && rm -rf \
-    # Clean up any temporary files:
-    /tmp/* \
-    # Clean up the pip cache:
-    /root/.cache \
-    # Remove any compiled python files (compile on demand):
-    `find / -regex '.*\.py[co]'`
+COPY . /haproxy-src
 
-COPY reload.sh /reload.sh
-COPY . haproxy-src/
-RUN cd /haproxy-src/ && \
-  pip install . \
-  # Clean up obsolete files:
-  && rm -rf \
-    # Clean up any temporary files:
-    /tmp/* \
-    # Clean up the pip cache:
-    /root/.cache \
-    # Remove any compiled python files (compile on demand):
-    `find / -regex '.*\.py[co]'`
+RUN apk update && \
+    apk --no-cache add tini haproxy py-pip build-base python-dev ca-certificates && \
+    cp /haproxy-src/reload.sh /reload.sh && \
+    cd /haproxy-src && \
+    pip install -r requirements.txt && \
+    pip install . && \
+    apk del build-base python-dev && \
+    rm -rf "/tmp/*" "/root/.cache" `find / -regex '.*\.py[co]'`
 
 ENV RSYSLOG_DESTINATION=127.0.0.1 \
     MODE=http \
@@ -42,7 +22,7 @@ ENV RSYSLOG_DESTINATION=127.0.0.1 \
     STATS_AUTH="stats:stats" \
     SSL_BIND_OPTIONS=no-sslv3 \
     SSL_BIND_CIPHERS="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:DHE-DSS-AES128-SHA:DES-CBC3-SHA" \
-    HEALTH_CHECK="check"
+    HEALTH_CHECK="check inter 2000 rise 2 fall 3"
 
 EXPOSE 80 443 1936
 ENTRYPOINT ["tini", "--"]

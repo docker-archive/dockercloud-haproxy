@@ -4,6 +4,11 @@ import re
 
 from setuptools import setup, find_packages
 
+requirements = [
+    "python-dockercloud >= 1.0.3, < 2",
+    "docker-compose >= 1.6.0, <2"
+    ]
+
 
 def read(*parts):
     path = os.path.join(os.path.dirname(__file__), *parts)
@@ -20,9 +25,6 @@ def find_version(*file_paths):
     raise RuntimeError('Unable to find version string.')
 
 
-with open('requirements.txt') as f:
-    install_requires = f.read().splitlines()
-
 with open('./test-requirements.txt') as test_reqs_txt:
     test_requirements = [line for line in test_reqs_txt]
 
@@ -30,7 +32,7 @@ setup(
     name='dockercloud-haproxy',
     version=find_version('haproxy', '__init__.py'),
     packages=find_packages(),
-    install_requires=install_requires,
+    install_requires=requirements,
     tests_require=test_requirements,
     entry_points={
         'console_scripts':
