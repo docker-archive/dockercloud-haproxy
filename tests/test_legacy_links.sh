@@ -43,7 +43,7 @@ cleanup
 echo
 
 echo "=> Building haproxy image"
-docker tag this haproxy || docker build -t haproxy .
+docker build -t haproxy .
 echo
 
 echo "=> Creating certificates"
@@ -55,7 +55,7 @@ echo
 
 echo "=> Docker Host Ip address"
 DOCKER_HOST_IP=${DOCKER_HOST_IP:-$1}
-if docker-machine ip $1; then
+if docker-machine ip $1 >/dev/null 2>&1; then
     DOCKER_HOST_IP=`docker-machine ip $1`
 fi
 DOCKER_HOST_IP=${DOCKER_HOST_IP:-"127.0.0.1"}
