@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from haproxy.config import EXTRA_BIND_SETTINGS, EXTRA_FRONTEND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN
+from haproxy.config import EXTRA_BIND_SETTINGS, EXTRA_FRONTEND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN, SKIP_FORWARDED_PROTO
 
 
 def check_require_default_route(routes, routes_added):
@@ -95,11 +95,12 @@ def config_common_part(port, ssl_bind_string, vhosts):
     bind_string, ssl = get_bind_string(port, ssl_bind_string, vhosts)
     frontend_section.append("bind :%s" % bind_string)
 
-    # add x-forwarded-porto header
-    if ssl:
-        frontend_section.append("reqadd X-Forwarded-Proto:\ https")
-    else:
-        frontend_section.append("reqadd X-Forwarded-Proto:\ http")
+    # add x-forwarded-porto header if not skipped
+    if not SKIP_FORWARDED_PROTO:
+        if ssl:
+            frontend_section.append("reqadd X-Forwarded-Proto:\ https")
+        else:
+            frontend_section.append("reqadd X-Forwarded-Proto:\ http")
 
     # add maxconn
     frontend_section.append("maxconn %s" % MAXCONN)
@@ -135,8 +136,13 @@ def get_bind_string(port, ssl_bind_string, vhosts):
 def config_default_frontend(ssl_bind_string):
     cfg = OrderedDict()
     monitor_uri_configured = False
-    frontend = [("bind :80 %s" % EXTRA_BIND_SETTINGS.get('80', "")).strip(),
-                "reqadd X-Forwarded-Proto:\ http", "maxconn %s" % MAXCONN]
+    frontend = [("bind :80 %s" % EXTRA_BIND_SETTINGS.get('80', "")).strip()]
+
+    # add x-forwarded-porto header if not skipped
+    if not SKIP_FORWARDED_PROTO:
+        frontend.append("reqadd X-Forwarded-Proto:\ http")
+
+    frontend.append("maxconn %s" % MAXCONN)
 
     if MONITOR_URI and MONITOR_PORT == '80':
         frontend.append("monitor-uri %s" % MONITOR_URI)
@@ -149,8 +155,13 @@ def config_default_frontend(ssl_bind_string):
     cfg["frontend default_port_80"] = frontend
 
     if ssl_bind_string:
-        ssl_frontend = [("bind :443 %s %s" % (ssl_bind_string, EXTRA_BIND_SETTINGS.get('443', ""))).strip(),
-                        "reqadd X-Forwarded-Proto:\ https", "maxconn %s" % MAXCONN]
+        ssl_frontend = [("bind :443 %s %s" % (ssl_bind_string, EXTRA_BIND_SETTINGS.get('443', ""))).strip()]
+
+        # add x-forwarded-porto header if not skipped
+        if not SKIP_FORWARDED_PROTO:
+            ssl_frontend.append("reqadd X-Forwarded-Proto:\ https")
+
+        ssl_frontend.append("maxconn %s" % MAXCONN)
 
         if MONITOR_URI and (MONITOR_PORT == '443'):
             ssl_frontend.append("monitor-uri %s" % MONITOR_URI)
