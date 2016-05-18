@@ -64,11 +64,14 @@ class Haproxy(object):
     @staticmethod
     def _init_cloud_links():
         haproxy_container = fetch_remote_obj(HAPROXY_CONTAINER_URI)
-        links = CloudLinkHelper.get_cloud_links(haproxy_container)
-        Haproxy.cls_linked_services = CloudLinkHelper.get_linked_services(links)
-        logger.info("Linked service: %s", ", ".join(CloudLinkHelper.get_service_links_str(links)))
-        logger.info("Linked container: %s", ", ".join(CloudLinkHelper.get_container_links_str(links)))
-        return links
+        if haproxy_container:
+            links = CloudLinkHelper.get_cloud_links(haproxy_container)
+            Haproxy.cls_linked_services = CloudLinkHelper.get_linked_services(links)
+            logger.info("Linked service: %s", ", ".join(CloudLinkHelper.get_service_links_str(links)))
+            logger.info("Linked container: %s", ", ".join(CloudLinkHelper.get_container_links_str(links)))
+            return links
+        else:
+            return {}
 
     @staticmethod
     def _init_new_links():

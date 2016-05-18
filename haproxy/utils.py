@@ -7,17 +7,27 @@ import config
 
 logger = logging.getLogger("haproxy")
 
+invalid_auth_headers = set()
+
 
 def fetch_remote_obj(uri):
     if not uri:
         return None
 
+    auth_header = str(dockercloud.auth.get_auth_header())
     while True:
         try:
+            if auth_header in invalid_auth_headers:
+                logger.info("Using know invalid credentials")
+                return None
             obj = dockercloud.Utils.fetch_by_resource_uri(uri)
             return obj
+        except dockercloud.AuthError as e:
+            invalid_auth_headers.add(auth_header)
+            logger.info(e)
+            return None
         except Exception as e:
-            logger.error(e)
+            logger.info(e)
             time.sleep(config.API_RETRY)
 
 
