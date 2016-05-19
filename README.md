@@ -87,7 +87,7 @@ Similar to using legacy links, here list some differences that you need to notic
 - DO not overwrite `HOSTNAME` environment variable in `dockercloud/haproxy container`.
 - As it is the case on Docker Cloud, auto reconfiguration is supported when the linked services scales or/and the linked container starts/stops.
 
-##### example of docker-compose.yml running in linux:
+##### example of docker-compose.yml running on Linux or Docker for Mac (beta):
 
 	version: '2'
 	services:
@@ -102,7 +102,7 @@ Similar to using legacy links, here list some differences that you need to notic
 	    ports:
 	      - 80:80
 
-##### example of docker-compose.yml running in Mac OS
+##### example of docker-compose.yml running on Mac OS
 
 	version: '2'
 	services:
@@ -185,6 +185,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |MONITOR_URI| |the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|
 |OPTION|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|
 |RSYSLOG_DESTINATION|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|
+|SKIP_FORWARDED_PROTO||If set to any value, HAProxy will not add an X-Forwarded- headers. This can be used when combining HAProxy with another load balancer|
 |SSL_BIND_CIPHERS| |explicitly set which SSL ciphers will be used for the SSL server. This sets the HAProxy `ssl-default-bind-ciphers` configuration setting.|
 |SSL_BIND_OPTIONS|no-sslv3|explicitly set which SSL bind options will be used for the SSL server. This sets the HAProxy `ssl-default-bind-options` configuration setting. The default will allow only TLSv1.0+ to be used on the SSL server.|
 |STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|

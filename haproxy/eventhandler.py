@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import dockercloud
 from compose.cli.docker_client import docker_client
@@ -52,12 +53,23 @@ def on_user_reload(signum, frame):
         run_haproxy("User reload")
 
 
+def on_cloud_error(e):
+    if isinstance(e, KeyboardInterrupt):
+        exit(0)
+
+
 def listen_dockercloud_events():
     events = dockercloud.Events()
     events.on_open(on_websocket_open)
     events.on_close(on_websocket_close)
     events.on_message(on_cloud_event)
-    events.run_forever()
+    events.on_error(on_cloud_error)
+    while True:
+        try:
+            events.run_forever()
+        except dockercloud.AuthError as e:
+            logger.info("Auth error: %s, retry in 1 hour" % e)
+            time.sleep(3600)
 
 
 def listen_docker_events():

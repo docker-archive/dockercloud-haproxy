@@ -17,6 +17,7 @@ class FrontendHelperTestCase(unittest.TestCase):
         frontend_helper.EXTRA_BIND_SETTINGS = {"8888": "name http", "4443": "accept-proxy"}
         frontend_helper.MAXCONN = "55555"
         frontend_helper.EXTRA_FRONTEND_SETTINGS = {}
+        frontend_helper.SKIP_FORWARDED_PROTO = None
 
     def tearDown(self):
         frontend_helper.MONITOR_PORT = self.monitor_port
@@ -24,6 +25,7 @@ class FrontendHelperTestCase(unittest.TestCase):
         frontend_helper.EXTRA_BIND_SETTINGS = self.extra_bind_settings
         frontend_helper.MAXCONN = self.maxconn
         frontend_helper.EXTRA_FRONTEND_SETTINGS = {}
+        frontend_helper.SKIP_FORWARDED_PROTO = None
 
     def test_config_frontend_with_virtual_host_without_monitoring_uri_added(self):
         vhosts = [{'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80'}]
@@ -185,6 +187,27 @@ class FrontendHelperTestCase(unittest.TestCase):
         self.assertFalse(monitor_uri_configured)
         frontend_helper.EXTRA_FRONTEND_SETTINGS = {}
 
+    @mock.patch("haproxy.helper.frontend_helper.get_bind_string")
+    def test_config_common_part_without_forwarded_headers(self, mock_get_bind_string):
+        mock_get_bind_string.return_value = ("80", False)
+        frontend_helper.SKIP_FORWARDED_PROTO = 'true'
+        frontend_section, monitor_uri_configured = config_common_part("80", "ssl crt /certs/", [])
+        self.assertEqual(["bind :80",
+                          "maxconn 55555",
+                          "acl is_websocket hdr(Upgrade) -i WebSocket"],
+                         frontend_section)
+
+    @mock.patch("haproxy.helper.frontend_helper.get_bind_string")
+    def test_config_common_part_without_forwarded_headers_with_ssl(self, mock_get_bind_string):
+        mock_get_bind_string.return_value = ("9999 ssl crt /certs/", True)
+        frontend_helper.SKIP_FORWARDED_PROTO = 'true'
+        frontend_section, monitor_uri_configured = config_common_part("9999", "ssl crt /certs/", [])
+        self.assertEqual(["bind :9999 ssl crt /certs/",
+                          'maxconn 55555',
+                          "monitor-uri %s" % frontend_helper.MONITOR_URI,
+                          "acl is_websocket hdr(Upgrade) -i WebSocket"],
+                         frontend_section)
+
     def test_get_bind_string(self):
         vhosts = [{'service_alias': 'web-a', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80'},
                   {'service_alias': 'web-b', 'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '8888'},
@@ -271,6 +294,21 @@ class FrontendHelperTestCase(unittest.TestCase):
                                       ('frontend default_port_443',
                                        ['bind :443 ssl crt /certs/ accept-proxy',
                                         'reqadd X-Forwarded-Proto:\\ https',
+                                        'maxconn 55555',
+                                        'monitor-uri /ping',
+                                        'reqadd header2 value2',
+                                        'default_backend default_service'])]), cfg)
+        self.assertTrue(monitor_uri_configured)
+
+        frontend_helper.SKIP_FORWARDED_PROTO = 'true'
+        cfg, monitor_uri_configured = config_default_frontend("ssl crt /certs/")
+        self.assertEqual(OrderedDict([('frontend default_port_80',
+                                       ['bind :80',
+                                        'maxconn 55555',
+                                        'reqadd header1 value1',
+                                        'default_backend default_service']),
+                                      ('frontend default_port_443',
+                                       ['bind :443 ssl crt /certs/ accept-proxy',
                                         'maxconn 55555',
                                         'monitor-uri /ping',
                                         'reqadd header2 value2',
