@@ -87,7 +87,7 @@ Similar to using legacy links, here list some differences that you need to notic
 - DO not overwrite `HOSTNAME` environment variable in `dockercloud/haproxy container`.
 - As it is the case on Docker Cloud, auto reconfiguration is supported when the linked services scales or/and the linked container starts/stops.
 
-##### example of docker-compose.yml running in linux:
+##### example of docker-compose.yml running on Linux or Docker for Mac (beta):
 
 	version: '2'
 	services:
@@ -102,7 +102,7 @@ Similar to using legacy links, here list some differences that you need to notic
 	    ports:
 	      - 80:80
 
-##### example of docker-compose.yml running in Mac OS
+##### example of docker-compose.yml running on Mac OS
 
 	version: '2'
 	services:
