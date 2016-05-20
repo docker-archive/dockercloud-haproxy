@@ -25,7 +25,10 @@ class Specs(object):
             del self.details[service_alias]
 
             for route in self.routes[service_alias]:
-                self.routes[services_with_same_vhost[service_alias]].append(route)
+                if services_with_same_vhost[service_alias] not in self. routes:
+                    self.routes[services_with_same_vhost[service_alias]] = [route]
+                else:
+                    self.routes[services_with_same_vhost[service_alias]].append(route)
             del self.routes[service_alias]
 
             vhosts = []
