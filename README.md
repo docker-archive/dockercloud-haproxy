@@ -6,9 +6,12 @@ reconfigures itself when a linked cluster member redeploys, joins or leaves.
 
 ## Version
 
-- latest: `dockercloud/haproxy:1.2.1`
+The availabe version can be found here: https://hub.docker.com/r/dockercloud/haproxy/tags/
+ - `lasest` is buit againt master brach
+ - `staging` is built againt staging branch
+ - `x.x.x` is built againt git tags on github
 
-**Attention** : Please *ALWAYS* use a specific image tag that works for you. Do *NOT* use `dockercloud/haproxy:latest` in any situation other than testing purpose.
+**Attention** : Please **ALWAYS** use a specific image tag that works for you. **DO NOT** use `dockercloud/haproxy:latest` in any situation other than testing purpose.
 
 ## Usage
 
@@ -86,6 +89,7 @@ Similar to using legacy links, here list some differences that you need to notic
 - A link is required in order to ensure that dockercloud/haproxy is aware of which service it needs to balance, although links are not needed for service discovery since docker 1.10. Linked aliases are not required.
 - DO not overwrite `HOSTNAME` environment variable in `dockercloud/haproxy container`.
 - As it is the case on Docker Cloud, auto reconfiguration is supported when the linked services scales or/and the linked container starts/stops.
+- The container name is maintained by docker-compose, and used for service discovery as well. Please **DO NOT** change `container_name` of the linked service in the compose file to a non-standard name. Otherwise, that service will be ignored.
 
 ##### example of docker-compose.yml running on Linux or Docker for Mac (beta):
 
