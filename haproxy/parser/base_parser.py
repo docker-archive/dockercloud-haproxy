@@ -24,12 +24,12 @@ class Specs(object):
             self.service_aliases.remove(service_alias)
             del self.details[service_alias]
 
-            for route in self.routes[service_alias]:
-                if services_with_same_vhost[service_alias] not in self. routes:
-                    self.routes[services_with_same_vhost[service_alias]] = [route]
-                else:
-                    self.routes[services_with_same_vhost[service_alias]].append(route)
-            del self.routes[service_alias]
+            if service_alias in self.routes:
+                for route in self.routes[service_alias]:
+                    if service_alias in services_with_same_vhost and \
+                                    services_with_same_vhost[service_alias] in self.routes:
+                        self.routes[services_with_same_vhost[service_alias]].append(route)
+                del self.routes[service_alias]
 
             vhosts = []
             for vhost in self.vhosts:

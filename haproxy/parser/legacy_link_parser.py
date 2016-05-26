@@ -66,19 +66,10 @@ class LegacyLinkSpecs(Specs):
                     route.update({"container_name": container_name})
                     exclude_ports = details.get(service_alias, {}).get("exclude_ports")
                     if not exclude_ports or (exclude_ports and route["port"] not in exclude_ports):
-                        route_added = False
-                        for _, rs in routes.iteritems():
-                            for r in rs:
-                                if route['proto'] == r['proto'] and \
-                                                route['port'] == r['port'] and \
-                                                route['addr'] == r['addr']:
-                                    route_added = True
-                                    break
-                        if not route_added:
-                            if service_alias in routes:
-                                routes[service_alias].append(route)
-                            else:
-                                routes[service_alias] = [route]
+                        if service_alias in routes:
+                            routes[service_alias].append(route)
+                        else:
+                            routes[service_alias] = [route]
         return routes
 
 
