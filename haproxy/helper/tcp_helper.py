@@ -27,6 +27,7 @@ def parse_port_string(port, ssl_bind_string):
 def get_tcp_routes(details, routes, port, port_num):
     tcp_routes = []
     routes_added = []
+    addresses_added = []
     if port != port_num and port != port_num + "/ssl":
         return tcp_routes, routes_added
 
@@ -35,11 +36,15 @@ def get_tcp_routes(details, routes, port, port_num):
         if tcp_ports and port in tcp_ports:
             for route in routes:
                 if route["port"] == port_num:
-                    tcp_route = ["server %s %s:%s" % (route["container_name"], route["addr"], route["port"])]
-                    health_check = get_healthcheck_string(details, _service_alias)
-                    tcp_route.append(health_check)
-                    tcp_routes.append(" ".join(tcp_route))
+                    address = "%s:%s" % (route["addr"], route["port"])
+                    if address not in addresses_added:
+                        addresses_added.append(address)
+                        tcp_route = ["server %s %s" % (route["container_name"], address)]
+                        health_check = get_healthcheck_string(details, _service_alias)
+                        tcp_route.append(health_check)
+                        tcp_routes.append(" ".join(tcp_route))
                     routes_added.append(route)
+
     return tcp_routes, routes_added
 
 

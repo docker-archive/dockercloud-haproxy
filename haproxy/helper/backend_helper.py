@@ -23,14 +23,14 @@ def get_backend_routes(route_health_check, is_sticky, routes, routes_added, serv
     backend_routes = []
     for _service_alias, routes in routes.iteritems():
         if not service_alias or _service_alias == service_alias:
-            address_add = []
+            addresses_added = []
             for route in routes:
                 # avoid adding those tcp routes adding http backends
                 if route in routes_added:
                     continue
                 address = "%s:%s" % (route["addr"], route["port"])
-                if address not in address_add:
-                    address_add.append(address)
+                if address not in addresses_added:
+                    addresses_added.append(address)
                     backend_route = ["server %s %s" % (route["container_name"], address)]
                     if is_sticky:
                         backend_route.append("cookie %s" % route["container_name"])
