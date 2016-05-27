@@ -43,6 +43,7 @@ class Haproxy(object):
         self.routes_added = []
         self.require_default_route = False
         self.specs = None
+        self.tcp_ports = set()
 
         self.specs = self._initialize(self.link_mode)
 
@@ -258,11 +259,12 @@ class Haproxy(object):
         tcp_ports = TcpHelper.get_tcp_port_list(details, services_aliases)
 
         for tcp_port in set(tcp_ports):
-            tcp_section, port_num = self.get_tcp_section(details, services_aliases, tcp_port)
+            tcp_section, port_num = self._get_tcp_section(details, services_aliases, tcp_port)
+            self.tcp_ports.add(port_num)
             cfg["listen port_%s" % port_num] = tcp_section
         return cfg
 
-    def get_tcp_section(self, details, services_aliases, tcp_port):
+    def _get_tcp_section(self, details, services_aliases, tcp_port):
         tcp_section = []
         enable_ssl, port_num = TcpHelper.parse_port_string(tcp_port, self.ssl_bind_string)
         bind_string = get_bind_string(enable_ssl, port_num, self.ssl_bind_string, EXTRA_BIND_SETTINGS)
@@ -287,6 +289,11 @@ class Haproxy(object):
         monitor_uri_configured = False
         if vhosts:
             cfg, monitor_uri_configured = FrontendHelper.config_frontend_with_virtual_host(vhosts, ssl_bind_string)
+            for port in self.tcp_ports:
+                port_str = "frontend port_%s" % port
+                if port_str in cfg:
+                    del cfg[port_str]
+
         else:
             self.require_default_route = FrontendHelper.check_require_default_route(self.specs.get_routes(),
                                                                                     self.routes_added)
