@@ -176,6 +176,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |EXTRA_DEFAULT_SETTINGS| |comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
 |EXTRA_FRONTEND_SETTINGS_\<PORT\>| |comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|
 |EXTRA_GLOBAL_SETTINGS| |comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
+|EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|
 |EXTRA_SSL_CERTS| |list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
 |HEALTH_CHECK|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
 |HTTP_BASIC_AUTH| |a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|
@@ -203,6 +204,7 @@ Settings here can overwrite the settings in HAProxy, which are only applied to t
 |COOKIE|sticky session option. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
 |DEFAULT_SSL_CERT|similar to SSL_CERT, but stores the pem file at `/certs/cert0.pem` as the default ssl certs. If multiple `DEFAULT_SSL_CERT` are specified in linked services and HAProxy, the behavior is undefined|
 |EXCLUDE_PORTS|comma separated port numbers(e.g. 3306, 3307). By default, HAProxy will add all the ports exposed by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
+|EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check,possible value: "send-proxy"|
 |EXTRA_SETTINGS|comma-separated string of extra settings, and each part will be appended to either related backend section or listen session in the configuration file. To escape comma, use `\,`. Possible value: `balance source`|
 |FORCE_SSL|if set(any value) together with ssl termination enabled. HAProxy will redirect HTTP request to HTTPS request.
 |GZIP_COMPRESSION_TYPE|enable gzip compression. The value of this envvar is a list of MIME types that will be compressed, possible value: `text/html text/plain text/css`|

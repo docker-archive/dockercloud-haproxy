@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
-from haproxy.config import EXTRA_BIND_SETTINGS, EXTRA_FRONTEND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN, SKIP_FORWARDED_PROTO
+from haproxy.config import EXTRA_BIND_SETTINGS, EXTRA_FRONTEND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN, \
+    SKIP_FORWARDED_PROTO
 
 
 def check_require_default_route(routes, routes_added):

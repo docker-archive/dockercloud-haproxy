@@ -1,6 +1,6 @@
 import re
 
-from haproxy.config import HEALTH_CHECK, HTTP_BASIC_AUTH
+from haproxy.config import HEALTH_CHECK, HTTP_BASIC_AUTH, EXTRA_ROUTE_SETTINGS
 from haproxy.utils import get_service_attribute
 
 
@@ -14,12 +14,14 @@ def get_backend_section(details, routes, vhosts, service_alias, routes_added):
     backend.extend(backend_settings)
 
     route_health_check = get_route_health_check(details, service_alias, HEALTH_CHECK)
-    backend_routes = get_backend_routes(route_health_check, is_sticky, routes, routes_added, service_alias)
+    extra_route_settings = get_extra_route_settings(details, service_alias, EXTRA_ROUTE_SETTINGS)
+    route_setting = " ".join([route_health_check, extra_route_settings]).strip()
+    backend_routes = get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias)
     backend.extend(backend_routes)
     return backend
 
 
-def get_backend_routes(route_health_check, is_sticky, routes, routes_added, service_alias):
+def get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias):
     backend_routes = []
     for _service_alias, routes in routes.iteritems():
         if not service_alias or _service_alias == service_alias:
@@ -35,8 +37,8 @@ def get_backend_routes(route_health_check, is_sticky, routes, routes_added, serv
                     if is_sticky:
                         backend_route.append("cookie %s" % route["container_name"])
 
-                    if route_health_check:
-                        backend_route.append(route_health_check)
+                    if route_setting:
+                        backend_route.append(route_setting)
 
                     backend_routes.append(" ".join(backend_route))
 
@@ -47,6 +49,12 @@ def get_route_health_check(details, service_alias, default_health_check):
     health_check = get_service_attribute(details, "health_check", service_alias)
     health_check = health_check if health_check else default_health_check
     return health_check
+
+
+def get_extra_route_settings(details, service_alias, default_extra_route_settings):
+    extra_route_settings = get_service_attribute(details, "extra_route_settings", service_alias)
+    extra_route_settings = extra_route_settings if extra_route_settings else default_extra_route_settings
+    return extra_route_settings
 
 
 def get_websocket_setting(vhosts, service_alias):
