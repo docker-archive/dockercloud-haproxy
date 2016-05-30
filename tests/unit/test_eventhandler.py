@@ -13,7 +13,7 @@ logging.disable(logging.CRITICAL)
 class OnCloudEventTestCase(unittest.TestCase):
     def setUp(self):
         self.linked_services = Haproxy.cls_linked_services
-        Haproxy.cls_linked_services = ["/svc/a/", "/svc/b/", "/svc/c/"]
+        Haproxy.cls_linked_services = set(["/svc/a/", "/svc/b/", "/svc/c/"])
         self.service_uri = config.HAPROXY_SERVICE_URI
         config.HAPROXY_SERVICE_URI = "/svc/uuid/"
 
