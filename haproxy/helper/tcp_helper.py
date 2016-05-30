@@ -1,6 +1,6 @@
 import re
 
-from haproxy.config import HEALTH_CHECK
+from haproxy.config import HEALTH_CHECK, EXTRA_ROUTE_SETTINGS
 from haproxy.utils import get_service_attribute
 
 
@@ -27,6 +27,7 @@ def parse_port_string(port, ssl_bind_string):
 def get_tcp_routes(details, routes, port, port_num):
     tcp_routes = []
     routes_added = []
+    addresses_added = []
     if port != port_num and port != port_num + "/ssl":
         return tcp_routes, routes_added
 
@@ -35,11 +36,17 @@ def get_tcp_routes(details, routes, port, port_num):
         if tcp_ports and port in tcp_ports:
             for route in routes:
                 if route["port"] == port_num:
-                    tcp_route = ["server %s %s:%s" % (route["container_name"], route["addr"], route["port"])]
-                    health_check = get_healthcheck_string(details, _service_alias)
-                    tcp_route.append(health_check)
-                    tcp_routes.append(" ".join(tcp_route))
+                    address = "%s:%s" % (route["addr"], route["port"])
+                    if address not in addresses_added:
+                        addresses_added.append(address)
+                        tcp_route = ["server %s %s" % (route["container_name"], address)]
+                        health_check = get_healthcheck_string(details, _service_alias)
+                        extra_route_settings = get_extra_route_settings_string(details, _service_alias)
+                        route_setting = " ".join([health_check, extra_route_settings]).strip()
+                        tcp_route.append(route_setting)
+                        tcp_routes.append(" ".join(tcp_route))
                     routes_added.append(route)
+
     return tcp_routes, routes_added
 
 
@@ -47,6 +54,12 @@ def get_healthcheck_string(details, service_alias):
     health_check = get_service_attribute(details, "health_check", service_alias)
     health_check = health_check if health_check else HEALTH_CHECK
     return health_check
+
+
+def get_extra_route_settings_string(details, service_alias):
+    extra_route_settings = get_service_attribute(details, "extra_route_settings", service_alias)
+    extra_route_settings = extra_route_settings if extra_route_settings else EXTRA_ROUTE_SETTINGS
+    return extra_route_settings
 
 
 def get_service_aliases_given_tcp_port(details, service_aliases, tcp_port):

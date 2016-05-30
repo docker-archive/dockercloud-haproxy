@@ -26,7 +26,7 @@ def run_haproxy(msg=None):
 
 
 class Haproxy(object):
-    cls_linked_services = []
+    cls_linked_services = set()
     cls_cfg = None
     cls_process = None
     cls_certs = []
@@ -43,6 +43,7 @@ class Haproxy(object):
         self.routes_added = []
         self.require_default_route = False
         self.specs = None
+        self.tcp_ports = set()
 
         self.specs = self._initialize(self.link_mode)
 
@@ -76,23 +77,24 @@ class Haproxy(object):
     @staticmethod
     def _init_new_links():
         try:
-            docker = docker_client()
+            try:
+                docker = docker_client()
+            except:
+                docker = docker_client(os.environ)
+
             docker.ping()
             container_id = os.environ.get("HOSTNAME", "")
             haproxy_container = docker.inspect_container(container_id)
         except Exception as e:
-            logger.info("Docker API error, regressing to legacy links mode: ", e)
+            logger.info("Docker API error, regressing to legacy links mode: %s" % e)
             return None
         links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
 
-        try:
-            if ADDITIONAL_SERVICES:
-                additional_services = ADDITIONAL_SERVICES.split(",")
-                NewLinkHelper.get_additional_links(docker, additional_services, haproxy_container,
-                                                   links, Haproxy.cls_linked_services)
-        except Exception as e:
-            logger.info("Error loading ADDITIONAL_SERVICES: %s" % str(e))
-            return None
+        if ADDITIONAL_SERVICES:
+            additional_links, additional_services= NewLinkHelper.get_additional_links(docker, ADDITIONAL_SERVICES)
+            if additional_links and additional_services:
+                links.update(additional_links)
+                Haproxy.cls_linked_services.update(additional_services)
 
         logger.info("Linked service: %s", ", ".join(NewLinkHelper.get_service_links_str(links)))
         logger.info("Linked container: %s", ", ".join(NewLinkHelper.get_container_links_str(links)))
@@ -258,11 +260,12 @@ class Haproxy(object):
         tcp_ports = TcpHelper.get_tcp_port_list(details, services_aliases)
 
         for tcp_port in set(tcp_ports):
-            tcp_section, port_num = self.get_tcp_section(details, services_aliases, tcp_port)
+            tcp_section, port_num = self._get_tcp_section(details, services_aliases, tcp_port)
+            self.tcp_ports.add(port_num)
             cfg["listen port_%s" % port_num] = tcp_section
         return cfg
 
-    def get_tcp_section(self, details, services_aliases, tcp_port):
+    def _get_tcp_section(self, details, services_aliases, tcp_port):
         tcp_section = []
         enable_ssl, port_num = TcpHelper.parse_port_string(tcp_port, self.ssl_bind_string)
         bind_string = get_bind_string(enable_ssl, port_num, self.ssl_bind_string, EXTRA_BIND_SETTINGS)
@@ -287,6 +290,11 @@ class Haproxy(object):
         monitor_uri_configured = False
         if vhosts:
             cfg, monitor_uri_configured = FrontendHelper.config_frontend_with_virtual_host(vhosts, ssl_bind_string)
+            for port in self.tcp_ports:
+                port_str = "frontend port_%s" % port
+                if port_str in cfg:
+                    del cfg[port_str]
+
         else:
             self.require_default_route = FrontendHelper.check_require_default_route(self.specs.get_routes(),
                                                                                     self.routes_added)

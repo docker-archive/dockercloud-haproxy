@@ -1,7 +1,7 @@
 import unittest
 
 from haproxy.helper.new_link_helper import _calc_links, _get_linked_compose_services, _get_container_envvars, \
-    _get_container_endpoints, get_container_links_str, get_service_links_str
+    _get_container_endpoints, get_container_links_str, get_service_links_str, get_additional_links
 
 container1 = {u'ExecIDs': None,
               u'State': {u'Status': u'running', u'Pid': 28121, u'OOMKilled': False, u'Dead': False, u'Paused': False,
@@ -323,6 +323,17 @@ class NewLinkHelperTestCase(unittest.TestCase):
     def test_calc_links(self):
         docker = self.Docker()
         self.assertEqual(links, _calc_links(docker, ['hello', 'world'], 'tmp'))
+
+    def test_get_additional_links(self):
+        docker = self.Docker()
+
+        additional_links, additional_services = get_additional_links(docker, "tmp:hello, tmp:world")
+        self.assertEqual(links, additional_links)
+        self.assertEqual(set(["tmp_hello","tmp_world"]), additional_services)
+
+        additional_links, additional_services = get_additional_links(docker, "tmp:hello, tmp:world, tmp:aaa, aaa:bbb")
+        self.assertEqual(links, additional_links)
+        self.assertSetEqual(set(["tmp_hello", "tmp_world"]), additional_services)
 
     def test_get_container_endpoints(self):
         endpoints = {u'1936/tcp': u'tcp://tmp_lb_1:1936', u'443/tcp': u'tcp://tmp_lb_1:443',

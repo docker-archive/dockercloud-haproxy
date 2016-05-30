@@ -92,8 +92,16 @@ class TcpHelperTestCase(unittest.TestCase):
                    'WEB': {'tcp_ports': ['22'], 'health_check': 'checked'}}
         self.assertEqual(HEALTH_CHECK, get_healthcheck_string(details, "HW"))
         self.assertEqual("checked", get_healthcheck_string(details, "WEB"))
-        self.assertEqual(HEALTH_CHECK, get_healthcheck_string(details, "NOT_EXIT"))
-        self.assertEqual(HEALTH_CHECK, get_healthcheck_string({}, "NOT_EXIT"))
+        self.assertEqual(HEALTH_CHECK, get_healthcheck_string(details, "NOT_EXIST"))
+        self.assertEqual(HEALTH_CHECK, get_healthcheck_string({}, "NOT_EXIST"))
+
+    def test_get_extra_route_settings_string(self):
+        details = {'HW': {'tcp_ports': ['22']},
+                   'WEB': {'tcp_ports': ['22'], 'extra_route_settings': 'extra settings'}}
+        self.assertEqual(EXTRA_ROUTE_SETTINGS, get_extra_route_settings_string(details, "HW"))
+        self.assertEqual("extra settings", get_extra_route_settings_string(details, "WEB"))
+        self.assertEqual(EXTRA_ROUTE_SETTINGS, get_extra_route_settings_string(details, "NOT_EXIST"))
+        self.assertEqual(EXTRA_ROUTE_SETTINGS, get_extra_route_settings_string({}, "NOT_EXIST"))
 
     def test_get_service_aliases_given_tcp_port(self):
         details = {'HW': {'tcp_ports': ['22', '33']},

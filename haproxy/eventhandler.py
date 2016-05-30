@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import os
 
 import dockercloud
 from compose.cli.docker_client import docker_client
@@ -26,7 +27,7 @@ def on_cloud_event(message):
     # When service scale up/down or container start/stop/terminate/redeploy, reload the service
     if event.get("state", "") not in ["In progress", "Pending", "Terminating", "Starting", "Scaling", "Stopping"] and \
                     event.get("type", "").lower() in ["container", "service"] and \
-                    len(set(Haproxy.cls_linked_services).intersection(set(event.get("parents", [])))) > 0:
+                    len(Haproxy.cls_linked_services.intersection(set(event.get("parents", [])))) > 0:
         msg = "Docker Cloud Event: %s %s is %s" % (
             event["type"], get_uuid_from_resource_uri(event.get("resource_uri", "")), event["state"].lower())
         run_haproxy(msg)
@@ -74,7 +75,12 @@ def listen_dockercloud_events():
 
 def listen_docker_events():
     try:
-        docker = docker_client()
+
+        try:
+            docker = docker_client()
+        except:
+            docker = docker_client(os.environ)
+
         docker.ping()
         for event in docker.events(decode=True):
             logger.debug(event)

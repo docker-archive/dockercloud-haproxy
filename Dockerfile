@@ -25,5 +25,5 @@ ENV RSYSLOG_DESTINATION=127.0.0.1 \
     HEALTH_CHECK="check inter 2000 rise 2 fall 3"
 
 EXPOSE 80 443 1936
-ENTRYPOINT ["tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["dockercloud-haproxy"]

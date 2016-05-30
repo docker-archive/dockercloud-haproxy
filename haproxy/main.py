@@ -68,7 +68,10 @@ def check_link_mode(container_uri, service_uri, api_auth):
         link_mode = "new"
         reason = ""
         try:
-            docker = docker_client()
+            try:
+                docker = docker_client()
+            except:
+                docker = docker_client(os.environ)
             docker.ping()
         except Exception as e:
             reason = "unable to connect to docker daemon %s" % e
