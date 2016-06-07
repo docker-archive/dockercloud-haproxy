@@ -112,8 +112,8 @@ class CloudLinkHelperTestCase(unittest.TestCase):
         self.assertEqual([container_b, container_a], _get_linked_containers(cache, self.container_links))
 
     def test_get_linked_service(self):
-        self.assertEqual(['/api/app/v1/service/bc091010-0054-4cc6-9038-73ea1efc5b99/',
-                          '/api/app/v1/service/0d12900d-2ae8-4244-a9c0-48466347c08a/'],
+        self.assertEqual(set(['/api/app/v1/service/bc091010-0054-4cc6-9038-73ea1efc5b99/',
+                          '/api/app/v1/service/0d12900d-2ae8-4244-a9c0-48466347c08a/']),
                          get_linked_services(self.new_links))
 
     def test_get_service_Links_str(self):

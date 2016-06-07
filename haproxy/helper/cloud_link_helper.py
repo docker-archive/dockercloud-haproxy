@@ -67,11 +67,10 @@ def _get_linked_containers(cache, container_links):
 
 
 def get_linked_services(haproxy_links):
-    linked_services = []
+    linked_services = set()
     for link in haproxy_links.itervalues():
-        if link["service_uri"] not in linked_services:
-            linked_services.append(link["service_uri"])
-    return linked_services
+            linked_services.add(link["service_uri"])
+    return set(linked_services)
 
 
 def get_service_links_str(haproxy_links):
