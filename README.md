@@ -152,11 +152,11 @@ A second option is to use the `ADDITIONAL_SERVICES` variable for indentification
 	    image: dockercloud/hello-world
 	  lb:
 	    image: dockercloud/haproxy
-    	   depends_on:
-             - web
-             - blog
-           environment:
-             - ADDITIONAL_SERVICES=project_dir:web,project_dir:blog
+	    depends_on:
+	      - web
+	      - blog
+	    environment:
+	      - ADDITIONAL_SERVICES=project_dir:web,project_dir:blog
 	    volumes:
 	      - /var/run/docker.sock:/var/run/docker.sock
 	    ports:
