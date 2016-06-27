@@ -97,7 +97,7 @@ Similar to using legacy links, here list some differences that you need to notic
 	services:
 	  web:
 	    image: dockercloud/hello-world
-	   lb:
+	  lb:
 	    image: dockercloud/haproxy
 	    links:
 	      - web
