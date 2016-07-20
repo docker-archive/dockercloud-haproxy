@@ -46,7 +46,7 @@ def on_websocket_close():
     logger.info("Websocket close")
 
 
-def on_user_reload(signum, frame):
+def on_user_reload():
     Haproxy.cls_cfg = None
     if config.LINK_MODE == "legacy":
         logger.info("User reload is not supported in legacy link mode")

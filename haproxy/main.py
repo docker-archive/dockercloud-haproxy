@@ -1,7 +1,11 @@
+from gevent import monkey
+monkey.patch_all()
+
 import logging
 import os
-import signal
 import sys
+import signal
+import gevent
 
 import dockercloud
 from compose.cli.docker_client import docker_client
@@ -12,10 +16,6 @@ from eventhandler import on_user_reload, listen_docker_events, listen_dockerclou
 from haproxy import __version__
 from haproxycfg import run_haproxy
 from utils import save_to_file
-
-
-from gevent import monkey
-monkey.patch_all()
 
 dockercloud.user_agent = "dockercloud-haproxy/%s" % __version__
 
@@ -35,8 +35,8 @@ def main():
         logging.getLogger("python-dockercloud").setLevel(logging.DEBUG)
 
     config.LINK_MODE = check_link_mode(HAPROXY_CONTAINER_URI, HAPROXY_SERVICE_URI, API_AUTH)
-    signal.signal(signal.SIGUSR1, on_user_reload)
-    signal.signal(signal.SIGTERM, sys.exit)
+    gevent.signal(signal.SIGUSR1, on_user_reload)
+    gevent.signal(signal.SIGTERM, sys.exit)
 
     pid = create_pid_file()
     logger.info("dockercloud/haproxy PID: %s" % pid)
