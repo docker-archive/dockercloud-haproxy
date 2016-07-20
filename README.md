@@ -6,10 +6,10 @@ reconfigures itself when a linked cluster member redeploys, joins or leaves.
 
 ## Version
 
-The availabe version can be found here: https://hub.docker.com/r/dockercloud/haproxy/tags/
- - `latest` is buit againt master brach
- - `staging` is built againt staging branch
- - `x.x.x` is built againt git tags on github
+The available version can be found here: https://hub.docker.com/r/dockercloud/haproxy/tags/
+ - `latest` is built against master brach
+ - `staging` is built against staging branch
+ - `x.x.x` is built against git tags on github
 
 **Attention** : Please **ALWAYS** use a specific image tag that works for you. **DO NOT** use `dockercloud/haproxy:latest` in any situation other than testing purpose.
 
@@ -18,8 +18,8 @@ The availabe version can be found here: https://hub.docker.com/r/dockercloud/hap
 You can use `dockercloud/haproxy` in three different ways:
 
 - running in Docker Cloud
-- running with docker legacy links
-- running with Docker Compose v2(new links, compatible with Docker Swarm)
+- running with Docker legacy links
+- running with Docker Compose v2 (new links, compatible with Docker Swarm)
 
 ### Running in Docker Cloud
 
