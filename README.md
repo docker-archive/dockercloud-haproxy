@@ -7,7 +7,7 @@ reconfigures itself when a linked cluster member redeploys, joins or leaves.
 ## Version
 
 The available version can be found here: https://hub.docker.com/r/dockercloud/haproxy/tags/
- - `latest` is built against master brach
+ - `latest` is built against master branch
  - `staging` is built against staging branch
  - `x.x.x` is built against git tags on github
 
