@@ -196,6 +196,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|
 |STATS_PORT|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`
 |TIMEOUT|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|
+|NBPROC|1|sets the `nbproc` entry to the `global` section. By default, only one process is created, which is the recommended mode of operation.|
 
 ### Settings in linked application services###
 
