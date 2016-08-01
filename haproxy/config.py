@@ -60,6 +60,7 @@ SSL_BIND_OPTIONS = os.getenv("SSL_BIND_OPTIONS")
 STATS_AUTH = os.getenv("STATS_AUTH", "stats:stats")
 STATS_PORT = os.getenv("STATS_PORT", "1936")
 TIMEOUT = os.getenv("TIMEOUT", "connect 5000, client 50000, server 50000")
+NBPROC = int(os.getenv("NBPROC", 1))
 
 # global
 LINK_MODE = ""
