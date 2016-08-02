@@ -170,7 +170,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 
 |Environment Variable|Default|Description|
 |:-----:|:-----:|:----------|
-|ADDITIONAL_BACKENDS| |list of additional backends to balance. The format is `backend name, server name ,FORCE_SSL(True|False),host:port,options`|
+|ADDITIONAL_BACKENDS| |list of additional backends to balance. The format is `backend name, FORCE_SSL(True|False), server name, host:port, options`|
 |ADDITIONAL_SERVICES| |list of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network resolvable and accessible to this containers.|
 |BALANCE|roundrobin|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
 |CA_CERT_FILE| |the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|

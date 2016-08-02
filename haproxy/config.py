@@ -28,21 +28,22 @@ def parse_extra_frontend_settings(envvars):
                     settings_dict[port] = settings
     return settings_dict
 
-# backend_name,server_name,settings,host:port
+# backend_name,FORCE_SSL,server_name,host:port, options
 def parse_additional_backends(additional_backend_settings):
    additional_backends = {}
    if not additional_backend_settings:
      return additional_backends
+
    for backend in additional_backend_settings.split(";"):
      parts = backend.split(",")
-     service_name, backend_name, redirect, backend_desc,options = parts
+     backend_name, force_ssl, server_name, host_port, options = parts
 
-     if redirect=="True":
-        route = ["redirect scheme https code 301 if !{ ssl_fc }", backend_name + ' ' + backend_desc + ' ' + options]
+     if force_ssl=="True":
+        route = ["redirect scheme https code 301 if !{ ssl_fc }", 'server ' + server_name + ' ' + host_port + ' ' + options]
      else:
-        route = [backend_name + ' ' + backend_desc + ' ' + options]
+        route = ['server ' + server_name + ' ' + host_port + ' ' + options]
 
-     additional_backends[service_name] = route
+     additional_backends[backend_name] = route
    return additional_backends
 
 # envvar
