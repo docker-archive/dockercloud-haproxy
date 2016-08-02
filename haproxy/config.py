@@ -28,8 +28,25 @@ def parse_extra_frontend_settings(envvars):
                     settings_dict[port] = settings
     return settings_dict
 
+# backend_name,server_name,settings,host:port
+def parse_additional_backends(additional_backend_settings):
+   additional_backends = {}
+   if not additional_backend_settings:
+     return additional_backends
+   for backend in additional_backend_settings.split(";"):
+     parts = backend.split(",")
+     service_name, backend_name, redirect, backend_desc,options = parts
+
+     if redirect=="True":
+        route = ["redirect scheme https code 301 if !{ ssl_fc }", backend_name + ' ' + backend_desc + ' ' + options]
+     else:
+        route = [backend_name + ' ' + backend_desc + ' ' + options]
+
+     additional_backends[service_name] = route
+   return additional_backends
 
 # envvar
+ADDITIONAL_BACKENDS = parse_additional_backends(os.getenv("ADDITIONAL_BACKENDS"))
 ADDITIONAL_SERVICES = os.getenv("ADDITIONAL_SERVICES")
 API_AUTH = os.getenv("DOCKERCLOUD_AUTH")
 BALANCE = os.getenv("BALANCE", "roundrobin")
@@ -44,6 +61,7 @@ EXTRA_FRONTEND_SETTINGS = parse_extra_frontend_settings(os.environ)
 EXTRA_GLOBAL_SETTINGS = os.getenv("EXTRA_GLOBAL_SETTINGS")
 EXTRA_SSL_CERT = os.getenv("EXTRA_SSL_CERTS")
 EXTRA_ROUTE_SETTINGS=os.getenv("EXTRA_ROUTE_SETTINGS", "")
+FORCE_DEFAULT_BACKEND = os.getenv("FORCE_DEFAULT_BACKEND", "True")
 HAPROXY_CONTAINER_URI = os.getenv("DOCKERCLOUD_CONTAINER_API_URI")
 HAPROXY_SERVICE_URI = os.getenv("DOCKERCLOUD_SERVICE_API_URI")
 HEALTH_CHECK = os.getenv("HEALTH_CHECK", "check inter 2000 rise 2 fall 3")
