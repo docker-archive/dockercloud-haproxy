@@ -195,6 +195,12 @@ class Haproxy(object):
                       "daemon",
                       "stats socket /var/run/haproxy.stats level admin"]
 
+        if NBPROC > 1:
+            statements.append("nbproc %s" % NBPROC)
+            statements.append("stats bind-process %s" % NBPROC)
+            for x in range(1, NBPROC+1):
+                statements.append("cpu-map %s %s" % (x, x-1))
+
         statements.extend(ConfigHelper.config_ssl_bind_options(SSL_BIND_OPTIONS))
         statements.extend(ConfigHelper.config_ssl_bind_ciphers(SSL_BIND_CIPHERS))
         statements.extend(ConfigHelper.config_extra_settings(EXTRA_GLOBAL_SETTINGS))
