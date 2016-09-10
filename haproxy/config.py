@@ -28,26 +28,23 @@ def parse_extra_frontend_settings(envvars):
                     settings_dict[port] = settings
     return settings_dict
 
-# backend_name,FORCE_SSL,server_name,host:port, options
-def parse_additional_backends(additional_backend_settings):
-   additional_backends = {}
-   if not additional_backend_settings:
-     return additional_backends
-
-   for backend in additional_backend_settings.split(";"):
-     parts = backend.split(",")
-     backend_name, force_ssl, server_name, host_port, options = parts
-
-     if force_ssl=="True":
-        route = ["redirect scheme https code 301 if !{ ssl_fc }", 'server ' + server_name + ' ' + host_port + ' ' + options]
-     else:
-        route = ['server ' + server_name + ' ' + host_port + ' ' + options]
-
-     additional_backends[backend_name] = route
-   return additional_backends
+def parse_additional_backend_settings(envvars):
+    settings_dict = {}
+    if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
+        frontend_settings_pattern = re.compile(r"^ADDITIONAL_BACKEND_(\w{1,9})$")
+        for k, v in envvars.iteritems():
+            match = frontend_settings_pattern.match(k)
+            if match:
+                server = match.group(1)
+                settings = [x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())]
+                if server in settings_dict:
+                    settings_dict[server].extend(settings)
+                else:
+                    settings_dict[server] = settings
+    return settings_dict
 
 # envvar
-ADDITIONAL_BACKENDS = parse_additional_backends(os.getenv("ADDITIONAL_BACKENDS"))
+ADDITIONAL_BACKENDS = parse_additional_backend_settings(os.environ)
 ADDITIONAL_SERVICES = os.getenv("ADDITIONAL_SERVICES")
 API_AUTH = os.getenv("DOCKERCLOUD_AUTH")
 BALANCE = os.getenv("BALANCE", "roundrobin")
