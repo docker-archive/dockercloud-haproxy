@@ -83,19 +83,6 @@ class HaproxyUpdateTestCase(unittest.TestCase):
         self.assertFalse(mock_save.called)
         self.assertFalse(mock_run_reload.called)
 
-    @mock.patch("haproxy.haproxycfg.UpdateHelper.run_once")
-    @mock.patch("haproxy.haproxycfg.UpdateHelper.run_reload")
-    @mock.patch("haproxy.haproxycfg.save_to_file")
-    @mock.patch.object(haproxycfg.Haproxy, '_initialize')
-    def test_update_haproxy_cfg_only_once(self, mock_init, mock_save, mock_run_reload, mock_run_once):
-        haproxy = Haproxy()
-        haproxy.link_mode = "legacy"
-        cfg = {"key": "value"}
-        haproxy._update_haproxy(cfg)
-        mock_save.assert_called_with(HAPROXY_CONFIG_FILE, cfg)
-        self.assertFalse(mock_run_reload.called)
-        self.assertTrue(mock_run_once)
-
 
 class HaproxyConfigSSLTestCase(unittest.TestCase):
     @mock.patch.object(haproxycfg.Haproxy, '_config_ssl_cacerts')

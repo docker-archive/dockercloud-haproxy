@@ -1,4 +1,5 @@
 from gevent import monkey
+
 monkey.patch_all()
 
 import logging
@@ -6,20 +7,24 @@ import os
 import sys
 import signal
 import gevent
-
+import time
 import dockercloud
 from compose.cli.docker_client import docker_client
+from gevent import queue
 
 import config
 from config import DEBUG, PID_FILE, HAPROXY_CONTAINER_URI, HAPROXY_SERVICE_URI, API_AUTH
 from eventhandler import on_user_reload, listen_docker_events, listen_dockercloud_events
 from haproxy import __version__
-from haproxycfg import run_haproxy
+import haproxycfg
+from haproxycfg import add_haproxy_run_task, run_haproxy, Haproxy
 from utils import save_to_file
 
 dockercloud.user_agent = "dockercloud-haproxy/%s" % __version__
 
 logger = logging.getLogger("haproxy")
+
+haproxycfg.tasks = queue.Queue()
 
 
 def create_pid_file():
@@ -35,32 +40,50 @@ def main():
         logging.getLogger("python-dockercloud").setLevel(logging.DEBUG)
 
     config.LINK_MODE = check_link_mode(HAPROXY_CONTAINER_URI, HAPROXY_SERVICE_URI, API_AUTH)
+
     gevent.signal(signal.SIGUSR1, on_user_reload)
     gevent.signal(signal.SIGTERM, sys.exit)
+
+    gevent.spawn(run_haproxy)
 
     pid = create_pid_file()
     logger.info("dockercloud/haproxy PID: %s" % pid)
 
     if config.LINK_MODE == "cloud":
-        listen_dockercloud_events()
+        gevent.spawn(listen_dockercloud_events)
+
     elif config.LINK_MODE == "new":
-        run_haproxy("Initial start")
-        while True:
-            listen_docker_events()
-            run_haproxy("Reconnect docker events")
+        add_haproxy_run_task("Initial start")
+        gevent.spawn(listen_docker_events)
 
     elif config.LINK_MODE == "legacy":
-        run_haproxy()
+        add_haproxy_run_task("legacy link start")
+
+    while True:
+        time.sleep(5)
+        if Haproxy.cls_process:
+            if is_process_running(Haproxy.cls_process):
+                continue
+            Haproxy.cls_cfg = None
+            add_haproxy_run_task("haproxy %s died , restart" % Haproxy.cls_process.pid)
+
+
+def is_process_running(p):
+    try:
+        os.kill(p.pid, 0)
+        return True
+    except OSError:
+        return False
 
 
 def check_link_mode(container_uri, service_uri, api_auth):
     if container_uri and service_uri and api_auth:
         if container_uri and service_uri:
             if api_auth:
-                logger.info("dockercloud/haproxy %s has access to the Docker Cloud API - will reload list of backends" \
+                logger.info("dockercloud/haproxy %s has access to the Docker Cloud API - will reload list of backends"
                             " in real-time" % __version__)
             else:
-                logger.info("dockercloud/haproxy %s is unable to access the Docker cloud API - you might want to" \
+                logger.info("dockercloud/haproxy %s is unable to access the Docker cloud API - you might want to"
                             " give an API role to this service for automatic backend reconfiguration" % __version__)
         return "cloud"
     else:

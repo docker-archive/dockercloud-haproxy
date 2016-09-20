@@ -1,7 +1,9 @@
 import copy
 import logging
+import time
 from collections import OrderedDict
 
+import gevent
 from compose.cli.docker_client import docker_client
 
 import config
@@ -19,10 +21,30 @@ from utils import fetch_remote_obj, prettify, save_to_file, get_service_attribut
 
 logger = logging.getLogger("haproxy")
 
+tasks = None
 
-def run_haproxy(msg=None):
-    haproxy = Haproxy(config.LINK_MODE, msg)
-    haproxy.update()
+
+def add_haproxy_run_task(msg=None):
+    logger.info("=> Add task: %s", msg)
+    gevent.spawn(tasks.put, (config.LINK_MODE, msg))
+
+
+def run_haproxy():
+    while True:
+        delay = 1
+        mode, msg = tasks.get()
+        time.sleep(delay)
+        while not tasks.empty():
+            if mode != "cloud":
+                delay = 0.1
+            logger.info("=> Task accumulated, skip: %s", msg)
+            mode, msg = tasks.get()
+            time.sleep(delay)
+            continue
+        logger.info("=> Executing task: %s", msg)
+
+        haproxy = Haproxy(config.LINK_MODE)
+        haproxy.update()
 
 
 class Haproxy(object):
@@ -32,10 +54,8 @@ class Haproxy(object):
     cls_certs = []
     cls_ca_certs = []
 
-    def __init__(self, link_mode="", msg=""):
+    def __init__(self, link_mode=""):
         logger.info("==========BEGIN==========")
-        if msg:
-            logger.info(msg)
 
         self.link_mode = link_mode
         self.ssl_bind_string = None
@@ -91,7 +111,7 @@ class Haproxy(object):
         links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
 
         if ADDITIONAL_SERVICES:
-            additional_links, additional_services= NewLinkHelper.get_additional_links(docker, ADDITIONAL_SERVICES)
+            additional_links, additional_services = NewLinkHelper.get_additional_links(docker, ADDITIONAL_SERVICES)
             if additional_links and additional_services:
                 links.update(additional_links)
                 Haproxy.cls_linked_services.update(additional_services)
@@ -118,22 +138,17 @@ class Haproxy(object):
             logger.info("Internal error: Specs is not initialized")
 
     def _update_haproxy(self, cfg):
-        if self.link_mode in ["cloud", "new"]:
-            if Haproxy.cls_cfg != cfg:
-                logger.info("HAProxy configuration:\n%s" % cfg)
-                Haproxy.cls_cfg = cfg
-                if save_to_file(HAPROXY_CONFIG_FILE, cfg):
-                    Haproxy.cls_process = UpdateHelper.run_reload(Haproxy.cls_process)
-            elif self.ssl_updated:
-                logger.info("SSL certificates have been changed")
-                Haproxy.cls_process = UpdateHelper.run_reload(Haproxy.cls_process)
-            else:
-                logger.info("HAProxy configuration remains unchanged")
-            logger.info("===========END===========")
-        elif self.link_mode in ["legacy"]:
+        if Haproxy.cls_cfg != cfg:
             logger.info("HAProxy configuration:\n%s" % cfg)
+            Haproxy.cls_cfg = cfg
             if save_to_file(HAPROXY_CONFIG_FILE, cfg):
-                UpdateHelper.run_once()
+                Haproxy.cls_process = UpdateHelper.run_reload(Haproxy.cls_process)
+        elif self.ssl_updated:
+            logger.info("SSL certificates have been changed")
+            Haproxy.cls_process = UpdateHelper.run_reload(Haproxy.cls_process)
+        else:
+            logger.info("HAProxy configuration remains unchanged")
+        logger.info("===========END===========")
 
     def _config_ssl(self):
         ssl_bind_string = ""
@@ -198,8 +213,8 @@ class Haproxy(object):
         if NBPROC > 1:
             statements.append("nbproc %s" % NBPROC)
             statements.append("stats bind-process %s" % NBPROC)
-            for x in range(1, NBPROC+1):
-                statements.append("cpu-map %s %s" % (x, x-1))
+            for x in range(1, NBPROC + 1):
+                statements.append("cpu-map %s %s" % (x, x - 1))
 
         statements.extend(ConfigHelper.config_ssl_bind_options(SSL_BIND_OPTIONS))
         statements.extend(ConfigHelper.config_ssl_bind_ciphers(SSL_BIND_CIPHERS))

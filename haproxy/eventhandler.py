@@ -9,7 +9,7 @@ from docker.errors import APIError
 
 import config
 import helper.cloud_link_helper
-from haproxycfg import run_haproxy, Haproxy
+from haproxycfg import add_haproxy_run_task, Haproxy
 from utils import get_uuid_from_resource_uri
 
 logger = logging.getLogger("haproxy")
@@ -30,16 +30,16 @@ def on_cloud_event(message):
                     len(Haproxy.cls_linked_services.intersection(set(event.get("parents", [])))) > 0:
         msg = "Docker Cloud Event: %s %s is %s" % (
             event["type"], get_uuid_from_resource_uri(event.get("resource_uri", "")), event["state"].lower())
-        run_haproxy(msg)
+        add_haproxy_run_task(msg)
 
     # Add/remove services linked to haproxy
     if event.get("state", "") == "Success" and config.HAPROXY_SERVICE_URI in event.get("parents", []):
-        run_haproxy("Docker Cloud Event: New action is executed on the Haproxy container")
+        add_haproxy_run_task("Docker Cloud Event: New action is executed on the Haproxy container")
 
 
 def on_websocket_open():
     helper.cloud_link_helper.LINKED_CONTAINER_CACHE.clear()
-    run_haproxy("Websocket open")
+    add_haproxy_run_task("Websocket open")
 
 
 def on_websocket_close():
@@ -48,10 +48,7 @@ def on_websocket_close():
 
 def on_user_reload():
     Haproxy.cls_cfg = None
-    if config.LINK_MODE == "legacy":
-        logger.info("User reload is not supported in legacy link mode")
-    else:
-        run_haproxy("User reload")
+    add_haproxy_run_task("User reload")
 
 
 def on_cloud_error(e):
@@ -74,24 +71,27 @@ def listen_dockercloud_events():
 
 
 def listen_docker_events():
-    try:
-
+    while True:
         try:
-            docker = docker_client()
-        except:
-            docker = docker_client(os.environ)
+            try:
+                docker = docker_client()
+            except:
+                docker = docker_client(os.environ)
 
-        docker.ping()
-        for event in docker.events(decode=True):
-            logger.debug(event)
-            attr = event.get("Actor", {}).get("Attributes")
-            compose_project = attr.get("com.docker.compose.project", "")
-            compose_service = attr.get("com.docker.compose.service", "")
-            container_name = attr.get("name", "")
-            event_action = event.get("Action", "")
-            service = "%s_%s" % (compose_project, compose_service)
-            if service in Haproxy.cls_linked_services and event_action in ["start", "die"]:
-                msg = "Docker event: container %s %s" % (container_name, event_action)
-                run_haproxy(msg)
-    except APIError as e:
-        logger.info("Docker API error: %s" % e)
+            docker.ping()
+            for event in docker.events(decode=True):
+                logger.debug(event)
+                attr = event.get("Actor", {}).get("Attributes")
+                compose_project = attr.get("com.docker.compose.project", "")
+                compose_service = attr.get("com.docker.compose.service", "")
+                container_name = attr.get("name", "")
+                event_action = event.get("Action", "")
+                service = "%s_%s" % (compose_project, compose_service)
+                if service in Haproxy.cls_linked_services and event_action in ["start", "die"]:
+                    msg = "Docker event: container %s %s" % (container_name, event_action)
+                    add_haproxy_run_task(msg)
+        except APIError as e:
+            logger.info("Docker API error: %s" % e)
+
+        time.sleep(1)
+        add_haproxy_run_task("Reconnect docker events")

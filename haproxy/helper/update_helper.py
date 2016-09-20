@@ -7,14 +7,6 @@ from haproxy.config import HAPROXY_RUN_COMMAND
 logger = logging.getLogger("haproxy")
 
 
-def run_once():
-    logger.info("Launching HAProxy")
-    p = subprocess.Popen(HAPROXY_RUN_COMMAND)
-    logger.info("HAProxy has been launched(PID: %s)", str(p.pid))
-    logger.info("===========END===========")
-    p.wait()
-
-
 def run_reload(old_process):
     if old_process:
         # Reload haproxy

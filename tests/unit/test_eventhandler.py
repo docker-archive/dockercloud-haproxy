@@ -21,8 +21,8 @@ class OnCloudEventTestCase(unittest.TestCase):
         Haproxy.cls_linked_services = self.linked_services
         config.HAPROXY_SERVICE_URI = self.service_uri
 
-    @mock.patch("haproxy.eventhandler.run_haproxy")
-    def test_event_reload_in_service_opterations(self, mock_run_haproxy):
+    @mock.patch("haproxy.eventhandler.add_haproxy_run_task")
+    def test_event_reload_in_service_opterations(self, mock_add_haproxy_run_task):
         not_triggered_event_01 = '{}'
         not_triggered_event_02 = '{"state": "In progress", "type": "container", "parents": ["/svc/a/"]}'
         not_triggered_event_03 = '{"state": "Pending", "type": "container", "parents": ["/svc/a/"]}'
@@ -43,7 +43,7 @@ class OnCloudEventTestCase(unittest.TestCase):
         on_cloud_event(not_triggered_event_08)
         on_cloud_event(not_triggered_event_09)
 
-        self.assertEqual(0, mock_run_haproxy.call_count)
+        self.assertEqual(0, mock_add_haproxy_run_task.call_count)
 
         triggered_event_01 = '{"state": "Stopped", "type": "container", "parents": ["/svc/a/"]}'
         triggered_event_02 = '{"state": "Started", "type": "container", "parents": ["/svc/a/"]}'
@@ -61,10 +61,10 @@ class OnCloudEventTestCase(unittest.TestCase):
         on_cloud_event(triggered_event_06)
         on_cloud_event(triggered_event_07)
 
-        self.assertEqual(7, mock_run_haproxy.call_count)
+        self.assertEqual(7, mock_add_haproxy_run_task.call_count)
 
-    @mock.patch("haproxy.eventhandler.run_haproxy")
-    def test_event_reload_in_link_opterations(self, mock_run_haproxy):
+    @mock.patch("haproxy.eventhandler.add_haproxy_run_task")
+    def test_event_reload_in_link_opterations(self, mock_add_haproxy_run_task):
         not_triggered_event_01 = '{}'
         not_triggered_event_02 = '{"state": "Failed", "parents": ["/svc/a/"]}'
         not_triggered_event_03 = '{"state": "Success", "parents": ["/svc/a/"]}'
@@ -74,11 +74,11 @@ class OnCloudEventTestCase(unittest.TestCase):
         on_cloud_event(not_triggered_event_02)
         on_cloud_event(not_triggered_event_03)
         on_cloud_event(not_triggered_event_04)
-        self.assertEqual(0, mock_run_haproxy.call_count)
+        self.assertEqual(0, mock_add_haproxy_run_task.call_count)
 
         triggered_event_01 = '{"state": "Success", "parents": ["/svc/uuid/"]}'
         triggered_event_02 = '{"state": "Success", "parents": ["/svc/a/", "/svc/uuid/"]}'
 
         on_cloud_event(triggered_event_01)
         on_cloud_event(triggered_event_02)
-        self.assertEqual(2, mock_run_haproxy.call_count)
+        self.assertEqual(2, mock_add_haproxy_run_task.call_count)
