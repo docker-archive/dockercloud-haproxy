@@ -17,11 +17,12 @@ The available version can be found here: https://hub.docker.com/r/dockercloud/ha
 
 You can use `dockercloud/haproxy` in three different ways:
 
-- running in Docker Cloud
-- running with Docker legacy links
-- running with Docker Compose v2 (new links, compatible with Docker Swarm)
+- running in Docker Cloud (Cloud Mode)
+- running with Docker legacy links (Legacy Mode)
+- running with Docker Compose v2 (Compose Mode, compatible with Docker Swarm)
+- running with Docker SwarmMode (Swarm Mode)
 
-### Running in Docker Cloud
+### Running in Docker Cloud (Cloud Mode)
 
 1. Launch the service you want to load-balance using Docker Cloud.
 
@@ -52,7 +53,28 @@ That's it - the haproxy container will start querying Docker Cloud's API for an 
 	  roles:
 	    - global
 
-### Running with docker legacy links
+### Running with Docker SwarmMode (Swarm Mode)
+
+Docker 1.12 supports SwarmMode natively. `dockercloud/haproxy` will auto config itself to load balance all the services running on the same network:
+
+1. Create a new network using `docker create` command
+
+2. Launch `dockercloud/haproxy` service on that network
+
+3. Launch your application services that need to be load balanced on the same network.
+
+* If your application services need to access other services(database, for example), you can attach your application services to two different network, one is for database and the other one for the proxy
+* This feature is still experimental, please let us know if you find any bugs or have any suggestions.
+
+#### example of docker swarm mode support
+
+    docker network create -d overlay proxy
+    docker service create --name haproxy --network proxy --mount target=/var/run/docker.sock,source=/var/run/docker.sock,type=bind -p 80:80 dockercloud/haproxy
+    docker service create --name app --network proxy dockercloud/hello-world
+    docker service scale app=2
+    docker service update --env-add VIRTUAL_HOST=web.org app
+
+### Running with Docker legacy links (Legacy Mode)
 
 Legacy link refers to the link created before docker 1.10, and the link created in default bridge network in docker 1.10 or after.
 
@@ -79,7 +101,7 @@ Legacy link refers to the link created before docker 1.10, and the link created 
 **Note**: Any link alias sharing the same prefix and followed by "-/_" with an integer is considered to be from the same service. For example: `web-1` and `web-2` belong to service `web`, `app_1` and `app_2` are from service `app`, but `app1` and `web2` are from different services.
 
 
-### Running with Docker Compose v2(new links)
+### Running with Docker Compose v2 (Compose Mode)
 
 Docker Compose 1.6 supports a new format of the compose file. In the new version(v2), the old link that injects environment variables is deprecated.
 

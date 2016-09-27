@@ -8,15 +8,16 @@ from compose.cli.docker_client import docker_client
 
 import config
 import helper.backend_helper as BackendHelper
-import helper.cloud_link_helper as CloudLinkHelper
+import helper.cloud_mode_link_helper as CloudModeLinkHelper
+import helper.compose_mode_link_helper as ComposeModeLinkHelper
 import helper.config_helper as ConfigHelper
 import helper.frontend_helper as FrontendHelper
-import helper.new_link_helper as NewLinkHelper
 import helper.ssl_helper as SslHelper
+import helper.swarm_mode_link_helper as SwarmModeLinkHelper
 import helper.tcp_helper as TcpHelper
 import helper.update_helper as UpdateHelper
 from haproxy.config import *
-from haproxy.parser import LegacyLinkSpecs, NewLinkSpecs
+from haproxy.parser import LegacySpecs, NewSpecs
 from utils import fetch_remote_obj, prettify, save_to_file, get_service_attribute, get_bind_string
 
 logger = logging.getLogger("haproxy")
@@ -26,7 +27,7 @@ tasks = None
 
 def add_haproxy_run_task(msg=None):
     logger.info("=> Add task: %s", msg)
-    gevent.spawn(tasks.put, (config.LINK_MODE, msg))
+    gevent.spawn(tasks.put, (config.RUNNING_MODE, msg))
 
 
 def run_haproxy():
@@ -35,7 +36,7 @@ def run_haproxy():
         mode, msg = tasks.get()
         time.sleep(delay)
         while not tasks.empty():
-            if mode != "cloud":
+            if mode != RunningMode.CloudMode:
                 delay = 0.1
             logger.info("=> Task accumulated, skip: %s", msg)
             mode, msg = tasks.get()
@@ -43,59 +44,64 @@ def run_haproxy():
             continue
         logger.info("=> Executing task: %s", msg)
 
-        haproxy = Haproxy(config.LINK_MODE)
+        haproxy = Haproxy(config.RUNNING_MODE)
         haproxy.update()
 
 
 class Haproxy(object):
     cls_linked_services = set()
+    cls_swarm_networks = []
     cls_cfg = None
     cls_process = None
     cls_certs = []
     cls_ca_certs = []
 
-    def __init__(self, link_mode=""):
+    def __init__(self, running_mode=RunningMode.LegacyMode):
         logger.info("==========BEGIN==========")
-
-        self.link_mode = link_mode
+        self.running_mode = running_mode
         self.ssl_bind_string = None
         self.ssl_updated = False
         self.routes_added = []
         self.require_default_route = False
         self.specs = None
         self.tcp_ports = set()
-
-        self.specs = self._initialize(self.link_mode)
+        self.specs = self._initialize(self.running_mode)
 
     @staticmethod
-    def _initialize(link_mode):
-        if link_mode == "cloud":
+    def _initialize(running_mode):
+        if running_mode == RunningMode.CloudMode:
             links = Haproxy._init_cloud_links()
-            specs = NewLinkSpecs(links)
-        elif link_mode == "new":
-            links = Haproxy._init_new_links()
+            specs = NewSpecs(links)
+        elif running_mode == RunningMode.ComposeMode:
+            links = Haproxy._init_compose_mode_links()
             if links is None:
-                specs = LegacyLinkSpecs()
+                specs = LegacySpecs()
             else:
-                specs = NewLinkSpecs(links)
+                specs = NewSpecs(links)
+        elif running_mode == RunningMode.SwarmMode:
+            links = Haproxy._init_swarm_mode_links()
+            if links is None:
+                specs = LegacySpecs()
+            else:
+                specs = NewSpecs(links)
         else:
-            specs = LegacyLinkSpecs()
+            specs = LegacySpecs()
         return specs
 
     @staticmethod
     def _init_cloud_links():
         haproxy_container = fetch_remote_obj(HAPROXY_CONTAINER_URI)
         if haproxy_container:
-            links = CloudLinkHelper.get_cloud_links(haproxy_container)
-            Haproxy.cls_linked_services = CloudLinkHelper.get_linked_services(links)
-            logger.info("Linked service: %s", ", ".join(CloudLinkHelper.get_service_links_str(links)))
-            logger.info("Linked container: %s", ", ".join(CloudLinkHelper.get_container_links_str(links)))
+            links = CloudModeLinkHelper.get_cloud_mode_links(haproxy_container)
+            Haproxy.cls_linked_services = CloudModeLinkHelper.get_linked_services(links)
+            logger.info("Linked service: %s", ", ".join(CloudModeLinkHelper.get_service_links_str(links)))
+            logger.info("Linked container: %s", ", ".join(CloudModeLinkHelper.get_container_links_str(links)))
             return links
         else:
             return {}
 
     @staticmethod
-    def _init_new_links():
+    def _init_swarm_mode_links():
         try:
             try:
                 docker = docker_client()
@@ -103,21 +109,45 @@ class Haproxy(object):
                 docker = docker_client(os.environ)
 
             docker.ping()
+
+        except Exception as e:
+            logger.info("Docker API error, regressing to legacy links mode: %s" % e)
+            return None
+        haproxy_container_id = os.environ.get("HOSTNAME", "")
+        links, Haproxy.cls_linked_services, Haproxy.cls_swarm_networks = SwarmModeLinkHelper.get_swarm_mode_links(
+            docker, haproxy_container_id)
+        logger.info("Linked service: %s", ", ".join(SwarmModeLinkHelper.get_service_links_str(links)))
+        logger.info("Linked container: %s", ", ".join(SwarmModeLinkHelper.get_container_links_str(links)))
+        return links
+
+    @staticmethod
+    def _init_compose_mode_links():
+        try:
+            try:
+                docker = docker_client()
+            except:
+                docker = docker_client(os.environ)
+            docker.ping()
             container_id = os.environ.get("HOSTNAME", "")
             haproxy_container = docker.inspect_container(container_id)
         except Exception as e:
             logger.info("Docker API error, regressing to legacy links mode: %s" % e)
             return None
-        links, Haproxy.cls_linked_services = NewLinkHelper.get_new_links(docker, haproxy_container)
+        try:
+            links, Haproxy.cls_linked_services = ComposeModeLinkHelper.get_compose_mode_links(docker, haproxy_container)
+        except Exception as e:
+            logger.info("Docker API error, regressing to legacy links mode: %s" % e)
+            return None
 
         if ADDITIONAL_SERVICES:
-            additional_links, additional_services = NewLinkHelper.get_additional_links(docker, ADDITIONAL_SERVICES)
+            additional_links, additional_services = ComposeModeLinkHelper.get_additional_links(docker,
+                                                                                               ADDITIONAL_SERVICES)
             if additional_links and additional_services:
                 links.update(additional_links)
                 Haproxy.cls_linked_services.update(additional_services)
 
-        logger.info("Linked service: %s", ", ".join(NewLinkHelper.get_service_links_str(links)))
-        logger.info("Linked container: %s", ", ".join(NewLinkHelper.get_container_links_str(links)))
+        logger.info("Linked service: %s", ", ".join(ComposeModeLinkHelper.get_service_links_str(links)))
+        logger.info("Linked container: %s", ", ".join(ComposeModeLinkHelper.get_container_links_str(links)))
         return links
 
     def update(self):

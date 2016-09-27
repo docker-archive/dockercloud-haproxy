@@ -2,7 +2,7 @@ import haproxy.config
 from haproxy.parser.base_parser import Specs, EnvParser
 
 
-class NewLinkSpecs(Specs):
+class NewSpecs(Specs):
     def __init__(self, links):
         super(self.__class__, self).__init__()
         self.service_aliases = self._parse_service_aliases(links)
@@ -21,7 +21,7 @@ class NewLinkSpecs(Specs):
 
     @staticmethod
     def _parse_details(service_aliases, links):
-        env_parser = NewLinkEnvParser(service_aliases)
+        env_parser = NewEnvParser(service_aliases)
         for link in links.itervalues():
             for envvar in link['container_envvars']:
                 env_parser.parse(link['service_name'], envvar['key'], envvar['value'])
@@ -46,7 +46,7 @@ class NewLinkSpecs(Specs):
         return routes
 
 
-class NewLinkEnvParser(EnvParser):
+class NewEnvParser(EnvParser):
     def __init__(self, service_aliases):
         super(self.__class__, self).__init__()
         self.attrs = [method[6:] for method in self.__class__.__base__.__dict__ if method.startswith("parse_")]

@@ -68,7 +68,8 @@ class BackendHelperTestCase(unittest.TestCase):
                    'web-c': {}}
         default_route_settings = 'default_routsettings'
 
-        self.assertEqual("extra_route_settings_web_a", get_extra_route_settings(details, 'web-a', default_route_settings))
+        self.assertEqual("extra_route_settings_web_a",
+                         get_extra_route_settings(details, 'web-a', default_route_settings))
         self.assertEqual(default_route_settings, get_extra_route_settings(details, 'web-b', default_route_settings))
         self.assertEqual(default_route_settings, get_extra_route_settings(details, 'web-c', default_route_settings))
         self.assertEqual(default_route_settings, get_extra_route_settings(details, 'web-d', default_route_settings))

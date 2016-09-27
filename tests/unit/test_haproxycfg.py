@@ -5,23 +5,23 @@ import mock
 from haproxy import haproxycfg
 from haproxy.haproxycfg import *
 from haproxy.parser.base_parser import Specs
-from haproxy.parser.legacy_link_parser import LegacyLinkSpecs
-from haproxy.parser.new_link_parser import NewLinkSpecs
+from haproxy.parser.legacy_parser import LegacySpecs
+from haproxy.parser.new_parser import NewSpecs
 
 
 class HaproxyInitTestCase(unittest.TestCase):
     @mock.patch.object(haproxycfg.Haproxy, '_init_cloud_links')
-    @mock.patch.object(haproxycfg.Haproxy, '_init_new_links')
-    def test_initialize(self, mock_init_new_links, mock_init_cloud_links):
-        self.assertTrue(isinstance(Haproxy._initialize("new"), NewLinkSpecs))
-        self.assertTrue(isinstance(Haproxy._initialize("cloud"), NewLinkSpecs))
-        self.assertTrue(isinstance(Haproxy._initialize("legacy"), LegacyLinkSpecs))
-        self.assertTrue(isinstance(Haproxy._initialize("other"), LegacyLinkSpecs))
+    @mock.patch.object(haproxycfg.Haproxy, '_init_compose_mode_links')
+    def test_initialize(self, mock__init_compose_mode_links, mock_init_cloud_links):
+        self.assertTrue(isinstance(Haproxy._initialize(RunningMode.ComposeMode), NewSpecs))
+        self.assertTrue(isinstance(Haproxy._initialize(RunningMode.CloudMode), NewSpecs))
+        self.assertTrue(isinstance(Haproxy._initialize(RunningMode.LegacyMode), LegacySpecs))
+        self.assertTrue(isinstance(Haproxy._initialize("other"), LegacySpecs))
 
     @mock.patch("haproxy.haproxycfg.docker_client")
-    def test_init_new_links_regressiong(self, mock_client):
+    def test__init_compose_mode_links_regressiong(self, mock_client):
         mock_client.side_effect = Exception()
-        self.assertIsNone(Haproxy._init_new_links())
+        self.assertIsNone(Haproxy._init_compose_mode_links())
 
 
 class HaproxyUpdateTestCase(unittest.TestCase):

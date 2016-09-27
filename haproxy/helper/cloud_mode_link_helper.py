@@ -8,7 +8,7 @@ LINKED_CONTAINER_CACHE = {}
 pool = Pool(size=5)
 
 
-def get_cloud_links(haproxy_container):
+def get_cloud_mode_links(haproxy_container):
     links = _init_links(haproxy_container.linked_to_container)
     new_added_container_uris = _get_new_added_link_uri(LINKED_CONTAINER_CACHE, links)
     new_added_containers = _get_container_object_from_uri(new_added_container_uris)
@@ -69,7 +69,7 @@ def _get_linked_containers(cache, container_links):
 def get_linked_services(haproxy_links):
     linked_services = set()
     for link in haproxy_links.itervalues():
-            linked_services.add(link["service_uri"])
+        linked_services.add(link["service_uri"])
     return set(linked_services)
 
 

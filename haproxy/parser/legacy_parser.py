@@ -4,7 +4,7 @@ import haproxy.config
 from haproxy.parser.base_parser import EnvParser, Specs
 
 
-class LegacyLinkSpecs(Specs):
+class LegacySpecs(Specs):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.envvars = os.environ
@@ -32,7 +32,7 @@ class LegacyLinkSpecs(Specs):
 
     @staticmethod
     def _parse_details(service_aliases, envvars):
-        env_parser = LegacyLinkEnvParser(service_aliases)
+        env_parser = LegacyEnvParser(service_aliases)
         for key, value in envvars.iteritems():
             env_parser.parse(key, value)
         details = env_parser.get_details()
@@ -73,7 +73,7 @@ class LegacyLinkSpecs(Specs):
         return routes
 
 
-class LegacyLinkEnvParser(EnvParser):
+class LegacyEnvParser(EnvParser):
     def __init__(self, service_aliases):
         super(self.__class__, self).__init__()
         self.service_aliases = service_aliases

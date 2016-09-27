@@ -1,14 +1,14 @@
 import json
 import logging
-import time
 import os
+import time
 
 import dockercloud
 from compose.cli.docker_client import docker_client
 from docker.errors import APIError
 
 import config
-import helper.cloud_link_helper
+import helper.cloud_mode_link_helper
 from haproxycfg import add_haproxy_run_task, Haproxy
 from utils import get_uuid_from_resource_uri
 
@@ -38,7 +38,7 @@ def on_cloud_event(message):
 
 
 def on_websocket_open():
-    helper.cloud_link_helper.LINKED_CONTAINER_CACHE.clear()
+    helper.cloud_mode_link_helper.LINKED_CONTAINER_CACHE.clear()
     add_haproxy_run_task("Websocket open")
 
 
@@ -70,7 +70,7 @@ def listen_dockercloud_events():
             time.sleep(3600)
 
 
-def listen_docker_events():
+def listen_docker_events_compose_mode():
     while True:
         try:
             try:
@@ -81,7 +81,7 @@ def listen_docker_events():
             docker.ping()
             for event in docker.events(decode=True):
                 logger.debug(event)
-                attr = event.get("Actor", {}).get("Attributes")
+                attr = event.get("Actor", {}).get("Attributes", {})
                 compose_project = attr.get("com.docker.compose.project", "")
                 compose_service = attr.get("com.docker.compose.service", "")
                 container_name = attr.get("name", "")
@@ -89,6 +89,35 @@ def listen_docker_events():
                 service = "%s_%s" % (compose_project, compose_service)
                 if service in Haproxy.cls_linked_services and event_action in ["start", "die"]:
                     msg = "Docker event: container %s %s" % (container_name, event_action)
+                    add_haproxy_run_task(msg)
+        except APIError as e:
+            logger.info("Docker API error: %s" % e)
+
+        time.sleep(1)
+        add_haproxy_run_task("Reconnect docker events")
+
+
+def listen_docker_events_swarm_mode():
+    while True:
+        try:
+            try:
+                docker = docker_client()
+            except:
+                docker = docker_client(os.environ)
+
+            docker.ping()
+            for event in docker.events(decode=True):
+                logger.debug(event)
+                action = event.get("Action", "")
+                type = event.get("Type", "")
+                container = event.get("Actor", {}).get("Attributes", {}).get("container", "")
+                network = event.get("Actor", {}).get("Attributes", {}).get("name")
+                id = event.get("Actor", {}).get("ID", "")
+                if type == "network" and action in ["connect", "disconnect"] and id in Haproxy.cls_swarm_networks:
+                    if action == "connect":
+                        msg = "Docker event: container %s %s to network %s" % (container, action, network)
+                    else:
+                        msg = "Docker event: container %s %s from network %s" % (container, action, network)
                     add_haproxy_run_task(msg)
         except APIError as e:
             logger.info("Docker API error: %s" % e)

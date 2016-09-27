@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger("haproxy")
 
 
-def get_new_links(docker, haproxy_container):
+def get_compose_mode_links(docker, haproxy_container):
     labels = haproxy_container.get("Config", {}).get("Labels", {})
     project = labels.get("com.docker.compose.project", "")
     if not project:
@@ -20,16 +20,16 @@ def get_additional_links(docker, additional_services):
     links = {}
     services = set()
     for additional_service in additional_services.split(","):
-            terms = additional_service.strip().split(":")
-            if len(terms) == 2:
-                project = terms[0]
-                service = terms[1]
-                link = _calc_links(docker, [service], project)
-                if link:
-                    links.update(link)
-                    services.add("%s_%s" % (project, service))
-                else:
-                    logger.info("Cannot find the additional service: %s" % additional_service.strip())
+        terms = additional_service.strip().split(":")
+        if len(terms) == 2:
+            project = terms[0]
+            service = terms[1]
+            link = _calc_links(docker, [service], project)
+            if link:
+                links.update(link)
+                services.add("%s_%s" % (project, service))
+            else:
+                logger.info("Cannot find the additional service: %s" % additional_service.strip())
     return links, services
 
 
@@ -53,8 +53,8 @@ def _calc_links(docker, linked_compose_services, project):
         if compose_project == project and compose_service in linked_compose_services:
             service_name = "%s_%s" % (compose_project, compose_service)
             container_name = container.get("Name").lstrip("/")
-            container_evvvars = _get_container_envvars(container)
-            endpoints = _get_container_endpoints(container, container_name)
+            container_evvvars = get_container_envvars(container)
+            endpoints = get_container_endpoints(container, container_name)
             links[container_id] = {"service_name": service_name,
                                    "container_envvars": container_evvvars,
                                    "container_name": container_name,
@@ -64,7 +64,7 @@ def _calc_links(docker, linked_compose_services, project):
     return links
 
 
-def _get_container_endpoints(container, container_name):
+def get_container_endpoints(container, container_name):
     endpoints = {}
     container_endpoints = container.get("Config", {}).get("ExposedPorts", {})
     for k, v in container_endpoints.iteritems():
@@ -81,7 +81,7 @@ def _get_container_endpoints(container, container_name):
     return endpoints
 
 
-def _get_container_envvars(container):
+def get_container_envvars(container):
     container_evvvars = []
     envvars = container.get("Config", {}).get("Env", [])
     for envvar in envvars:

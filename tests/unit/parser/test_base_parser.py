@@ -1,6 +1,6 @@
 import unittest
 
-from haproxy.parser.legacy_link_parser import *
+from haproxy.parser.legacy_parser import *
 
 
 class SpecsTestCase(unittest.TestCase):

@@ -1,10 +1,9 @@
 import unittest
 
-from haproxy.parser.legacy_link_parser import *
+from haproxy.parser.legacy_parser import *
 
 
 class SpecsTestCase(unittest.TestCase):
-
     def setUp(self):
         self.envvars = {'WORLD_1_ENV_MODE': 'http',
                         'HELLO_1_ENV_MODE': 'http',
@@ -29,7 +28,7 @@ class SpecsTestCase(unittest.TestCase):
                        {'path': '', 'host': 'b.com', 'scheme': 'http', 'port': '80', 'service_alias': 'HELLO'}]
 
     def test_merge_services_with_same_vhost(self):
-        specs = LegacyLinkSpecs()
+        specs = LegacySpecs()
         specs.details = {"HELLO": {"virtual_host_str": "a.com"},
                          "WORLD": {"virtual_host_str": "a.com"},
                          "HW": {"virtual_host_str": "b.com"}}
@@ -59,14 +58,14 @@ class SpecsTestCase(unittest.TestCase):
                          specs.vhosts)
 
     def test_parse_service_aliases(self):
-        specs = LegacyLinkSpecs()
+        specs = LegacySpecs()
         self.assertEqual([], specs._parse_service_aliases({}))
 
         specs.envvars = self.envvars
         self.assertEqual(self.service_aliases, specs._parse_service_aliases(self.envvars))
 
     def test_parse_details(self):
-        specs = LegacyLinkSpecs()
+        specs = LegacySpecs()
         empty_details = {'WORLD': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': None,
                                    'gzip_compression_type': None, 'http_check': None, 'virtual_host_weight': 0,
                                    'health_check': None, 'cookie': None, 'virtual_host': None, 'force_ssl': None,
@@ -86,7 +85,7 @@ class SpecsTestCase(unittest.TestCase):
         self.assertEqual(self.details, specs._parse_details(self.service_aliases, self.envvars))
 
     def test_parse_routes(self):
-        specs = LegacyLinkSpecs()
+        specs = LegacySpecs()
         self.assertEqual({}, specs._parse_routes({}, {}))
 
         specs.details = self.details
@@ -124,7 +123,7 @@ class SpecsTestCase(unittest.TestCase):
 
 class LegacyLinkEnvParserTestCase(unittest.TestCase):
     def test_parse(self):
-        env = LegacyLinkEnvParser(["HELLO", "WORLD"])
+        env = LegacyEnvParser(["HELLO", "WORLD"])
 
         env.parse("HELLO_ENV_NOT_DEFINED", "n/a")
         self.assertTrue("not_defined" not in env.details["HELLO"])

@@ -3,11 +3,11 @@ from copy import copy
 
 import dockercloud
 
-from haproxy.helper.cloud_link_helper import _init_links, _get_new_added_link_uri, _get_linked_containers, \
+from haproxy.helper.cloud_mode_link_helper import _init_links, _get_new_added_link_uri, _get_linked_containers, \
     get_service_links_str, get_container_links_str, get_linked_services, _update_container_cache, _update_links
 
 
-class CloudLinkHelperTestCase(unittest.TestCase):
+class CloudModeLinkHelperTestCase(unittest.TestCase):
     def setUp(self):
         self.container_links = [
             {"endpoints": {"80/tcp": "tcp://10.7.0.1:80"},
@@ -113,7 +113,7 @@ class CloudLinkHelperTestCase(unittest.TestCase):
 
     def test_get_linked_service(self):
         self.assertEqual(set(['/api/app/v1/service/bc091010-0054-4cc6-9038-73ea1efc5b99/',
-                          '/api/app/v1/service/0d12900d-2ae8-4244-a9c0-48466347c08a/']),
+                              '/api/app/v1/service/0d12900d-2ae8-4244-a9c0-48466347c08a/']),
                          get_linked_services(self.new_links))
 
     def test_get_service_Links_str(self):

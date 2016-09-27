@@ -1,7 +1,7 @@
 import unittest
 
-from haproxy.helper.new_link_helper import _calc_links, _get_linked_compose_services, _get_container_envvars, \
-    _get_container_endpoints, get_container_links_str, get_service_links_str, get_additional_links
+from haproxy.helper.compose_mode_link_helper import _calc_links, _get_linked_compose_services, get_container_envvars, \
+    get_container_endpoints, get_container_links_str, get_service_links_str, get_additional_links
 
 container1 = {u'ExecIDs': None,
               u'State': {u'Status': u'running', u'Pid': 28121, u'OOMKilled': False, u'Dead': False, u'Paused': False,
@@ -307,7 +307,7 @@ links = {u'8c64c58e2887877695e18972a263120262edc92a6fa2ab39b792a9606f565550':
                   u'80/tcp': u'tcp://tmp_hello_1:80'}}}
 
 
-class NewLinkHelperTestCase(unittest.TestCase):
+class ComposeModeLinkHelperTestCase(unittest.TestCase):
     class Docker:
         def inspect_container(self, container_id):
             if container_id == "b02cb80c8a8cec248cf5109abd7cab1eb2d05012fcbfe146c4aa2e6fdeb4a52c":
@@ -329,7 +329,7 @@ class NewLinkHelperTestCase(unittest.TestCase):
 
         additional_links, additional_services = get_additional_links(docker, "tmp:hello, tmp:world")
         self.assertEqual(links, additional_links)
-        self.assertEqual(set(["tmp_hello","tmp_world"]), additional_services)
+        self.assertEqual(set(["tmp_hello", "tmp_world"]), additional_services)
 
         additional_links, additional_services = get_additional_links(docker, "tmp:hello, tmp:world, tmp:aaa, aaa:bbb")
         self.assertEqual(links, additional_links)
@@ -338,11 +338,11 @@ class NewLinkHelperTestCase(unittest.TestCase):
     def test_get_container_endpoints(self):
         endpoints = {u'1936/tcp': u'tcp://tmp_lb_1:1936', u'443/tcp': u'tcp://tmp_lb_1:443',
                      u'80/tcp': u'tcp://tmp_lb_1:80'}
-        self.assertEqual(endpoints, _get_container_endpoints(container1, "tmp_lb_1"))
+        self.assertEqual(endpoints, get_container_endpoints(container1, "tmp_lb_1"))
 
         endpoints = {u'1936/tcp': u'tcp://something:1936', u'443/tcp': u'tcp://something:443',
                      u'80/tcp': u'tcp://something:80'}
-        self.assertEqual(endpoints, _get_container_endpoints(container1, "something"))
+        self.assertEqual(endpoints, get_container_endpoints(container1, "something"))
 
     def test_get_container_envvars(self):
         envvars = [{'value': u'tcp://192.168.99.100:2376', 'key': u'DOCKER_HOST'},
@@ -357,7 +357,7 @@ class NewLinkHelperTestCase(unittest.TestCase):
                    {'value': u'no-sslv3', 'key': u'SSL_BIND_OPTIONS'}, {
                        'value': u'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:DHE-DSS-AES128-SHA:DES-CBC3-SHA',
                        'key': u'SSL_BIND_CIPHERS'}, {'value': u'check', 'key': u'HEALTH_CHECK'}]
-        self.assertEqual(envvars, _get_container_envvars(container1))
+        self.assertEqual(envvars, get_container_envvars(container1))
 
     def test_get_link_compose_services(self):
         services = [u'hello', u'world']

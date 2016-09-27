@@ -2,6 +2,10 @@ import os
 import re
 
 
+class RunningMode():
+    LegacyMode, ComposeMode, SwarmMode, CloudMode = range(4)
+
+
 def parse_extra_bind_settings(extra_bind_settings):
     bind_dict = {}
     if extra_bind_settings:
@@ -43,7 +47,7 @@ EXTRA_DEFAULT_SETTINGS = os.getenv("EXTRA_DEFAULT_SETTINGS")
 EXTRA_FRONTEND_SETTINGS = parse_extra_frontend_settings(os.environ)
 EXTRA_GLOBAL_SETTINGS = os.getenv("EXTRA_GLOBAL_SETTINGS")
 EXTRA_SSL_CERT = os.getenv("EXTRA_SSL_CERTS")
-EXTRA_ROUTE_SETTINGS=os.getenv("EXTRA_ROUTE_SETTINGS", "")
+EXTRA_ROUTE_SETTINGS = os.getenv("EXTRA_ROUTE_SETTINGS", "")
 HAPROXY_CONTAINER_URI = os.getenv("DOCKERCLOUD_CONTAINER_API_URI")
 HAPROXY_SERVICE_URI = os.getenv("DOCKERCLOUD_SERVICE_API_URI")
 HEALTH_CHECK = os.getenv("HEALTH_CHECK", "check inter 2000 rise 2 fall 3")
@@ -63,7 +67,7 @@ TIMEOUT = os.getenv("TIMEOUT", "connect 5000, client 50000, server 50000")
 NBPROC = int(os.getenv("NBPROC", 1))
 
 # global
-LINK_MODE = ""
+RUNNING_MODE = None
 
 # const
 CERT_DIR = "/certs/"

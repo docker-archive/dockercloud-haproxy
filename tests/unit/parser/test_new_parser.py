@@ -1,6 +1,6 @@
 import unittest
 
-from haproxy.parser.new_link_parser import *
+from haproxy.parser.new_parser import *
 
 
 class SpecsTestCase(unittest.TestCase):
@@ -77,8 +77,8 @@ class SpecsTestCase(unittest.TestCase):
                           {'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '80', 'addr': 'tmp_hello_1'}]}
 
     def test_parse_service_aliases(self):
-        self.assertEqual([], NewLinkSpecs._parse_service_aliases({}))
-        self.assertEqual(self.service_aliases, NewLinkSpecs._parse_service_aliases(self.links))
+        self.assertEqual([], NewSpecs._parse_service_aliases({}))
+        self.assertEqual(self.service_aliases, NewSpecs._parse_service_aliases(self.links))
 
     def test_parse_details(self):
         empty_details = {'tmp_world': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': '',
@@ -92,38 +92,38 @@ class SpecsTestCase(unittest.TestCase):
                                        'tcp_ports': [], 'balance': '', 'extra_settings': '', 'appsession': '',
                                        'option': [], "extra_route_settings": ''}}
 
-        self.assertEqual({}, NewLinkSpecs._parse_details([], {}))
-        self.assertEqual({}, NewLinkSpecs._parse_details([], self.links))
-        self.assertEqual(empty_details, NewLinkSpecs._parse_details(self.service_aliases, {}))
-        self.assertEqual(self.details, NewLinkSpecs._parse_details(self.service_aliases, self.links))
+        self.assertEqual({}, NewSpecs._parse_details([], {}))
+        self.assertEqual({}, NewSpecs._parse_details([], self.links))
+        self.assertEqual(empty_details, NewSpecs._parse_details(self.service_aliases, {}))
+        self.assertEqual(self.details, NewSpecs._parse_details(self.service_aliases, self.links))
 
     def test_parse_routes(self):
-        self.assertEqual({}, NewLinkSpecs._parse_routes({}, {}))
-        self.assertEqual(self.routes, NewLinkSpecs._parse_routes({}, self.links))
-        self.assertEqual({}, NewLinkSpecs._parse_routes(self.details, {}))
-        self.assertEqual(self.routes, NewLinkSpecs._parse_routes(self.details, self.links))
+        self.assertEqual({}, NewSpecs._parse_routes({}, {}))
+        self.assertEqual(self.routes, NewSpecs._parse_routes({}, self.links))
+        self.assertEqual({}, NewSpecs._parse_routes(self.details, {}))
+        self.assertEqual(self.routes, NewSpecs._parse_routes(self.details, self.links))
 
     def test_parse_multi_routes(self):
-        self.assertEqual(self.routes2, NewLinkSpecs._parse_routes({}, self.links2))
+        self.assertEqual(self.routes2, NewSpecs._parse_routes({}, self.links2))
 
     def test_parse_routes_with_exclude_ports(self):
         details = {'tmp_hello': {'exclude_ports': ['20']}}
-        self.assertEqual(self.routes2, NewLinkSpecs._parse_routes(details, self.links2))
+        self.assertEqual(self.routes2, NewSpecs._parse_routes(details, self.links2))
 
         details = {'tmp_world': {'exclude_ports': ['80']}}
         routes = {'tmp_world': [{'container_name': 'tmp_world_2', 'proto': 'tcp', 'port': '22', 'addr': 'tmp_world_2'},
                                 {'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '22', 'addr': 'tmp_world_1'}],
                   'tmp_hello': [{'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '22', 'addr': 'tmp_hello_1'},
                                 {'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '80', 'addr': 'tmp_hello_1'}]}
-        self.assertEqual(routes, NewLinkSpecs._parse_routes(details, self.links2))
+        self.assertEqual(routes, NewSpecs._parse_routes(details, self.links2))
 
         details = {'tmp_world': {'exclude_ports': ['80', '22']}}
         routes = {'tmp_world': [],
                   'tmp_hello': [{'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '22', 'addr': 'tmp_hello_1'},
                                 {'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '80', 'addr': 'tmp_hello_1'}]}
-        self.assertEqual(routes, NewLinkSpecs._parse_routes(details, self.links2))
+        self.assertEqual(routes, NewSpecs._parse_routes(details, self.links2))
 
         details = {'tmp_world': {'exclude_ports': ['80', '22']}, 'tmp_hello': {'exclude_ports': ['80']}}
         routes = {'tmp_world': [],
                   'tmp_hello': [{'container_name': 'tmp_world_1', 'proto': 'tcp', 'port': '22', 'addr': 'tmp_hello_1'}]}
-        self.assertEqual(routes, NewLinkSpecs._parse_routes(details, self.links2))
+        self.assertEqual(routes, NewSpecs._parse_routes(details, self.links2))
