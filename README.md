@@ -353,7 +353,7 @@ There are two ways to enable the support of websocket:
 
 Use the following:
 
-    docker run -d --expose 80 --name webapp dockercloud/hello-world
+    docker run -d --expose 8080 --name webapp dockercloud/hello-world
     docker run -d --link webapp:webapp -p 80:80 dockercloud/haproxy
 
 #### My webapp container exposes port 80 and database ports 8083/8086, and I want the proxy to listen in port 80 without my database ports added to haproxy
