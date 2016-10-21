@@ -15,7 +15,7 @@ from gevent import queue
 import config
 from config import DEBUG, PID_FILE, HAPROXY_CONTAINER_URI, HAPROXY_SERVICE_URI, API_AUTH
 from eventhandler import on_user_reload, listen_docker_events_compose_mode, listen_dockercloud_events, \
-    listen_docker_events_swarm_mode
+    polling_service_status_swarm_mode
 from haproxy import __version__
 import haproxycfg
 from haproxycfg import add_haproxy_run_task, run_haproxy, Haproxy
@@ -58,7 +58,7 @@ def main():
         gevent.spawn(listen_docker_events_compose_mode)
     elif config.RUNNING_MODE == RunningMode.SwarmMode:
         add_haproxy_run_task("Initial start - Swarm Mode")
-        gevent.spawn(listen_docker_events_swarm_mode)
+        gevent.spawn(polling_service_status_swarm_mode)
     elif config.RUNNING_MODE == RunningMode.LegacyMode:
         add_haproxy_run_task("Initial start - Legacy Mode")
 

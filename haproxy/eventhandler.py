@@ -97,30 +97,26 @@ def listen_docker_events_compose_mode():
         add_haproxy_run_task("Reconnect docker events")
 
 
-def listen_docker_events_swarm_mode():
+def polling_service_status_swarm_mode():
     while True:
+        time.sleep(config.SWARM_MODE_POLLING_INTERVAL)
         try:
             try:
                 docker = docker_client()
             except:
                 docker = docker_client(os.environ)
 
-            docker.ping()
-            for event in docker.events(decode=True):
-                logger.debug(event)
-                action = event.get("Action", "")
-                type = event.get("Type", "")
-                container = event.get("Actor", {}).get("Attributes", {}).get("container", "")
-                network = event.get("Actor", {}).get("Attributes", {}).get("name")
-                id = event.get("Actor", {}).get("ID", "")
-                if type == "network" and action in ["connect", "disconnect"] and id in Haproxy.cls_swarm_networks:
-                    if action == "connect":
-                        msg = "Docker event: container %s %s to network %s" % (container, action, network)
-                    else:
-                        msg = "Docker event: container %s %s from network %s" % (container, action, network)
-                    add_haproxy_run_task(msg)
+            tasks = docker.tasks(filters={"desired-state": "running"})
+            linked_tasks = set()
+            for task in tasks:
+                task_nets = [network.get("Network", {}).get("ID", "") for network in
+                             task.get("NetworksAttachments", [])]
+                task_service_id = task.get("ServiceID", "")
+                if task_service_id != Haproxy.cls_service_id and Haproxy.cls_nets.intersection(set(task_nets)):
+                    task_id = task.get("ID", "")
+                    linked_tasks.add(task_id)
+
+            if Haproxy.cls_linked_tasks != linked_tasks:
+                add_haproxy_run_task("Tasks are updated")
         except APIError as e:
             logger.info("Docker API error: %s" % e)
-
-        time.sleep(1)
-        add_haproxy_run_task("Reconnect docker events")

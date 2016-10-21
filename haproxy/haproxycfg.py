@@ -26,7 +26,8 @@ tasks = None
 
 
 def add_haproxy_run_task(msg=None):
-    logger.info("=> Add task: %s", msg)
+    if msg:
+        logger.info("=> Add task: %s", msg)
     gevent.spawn(tasks.put, (config.RUNNING_MODE, msg))
 
 
@@ -38,7 +39,8 @@ def run_haproxy():
         while not tasks.empty():
             if mode != RunningMode.CloudMode:
                 delay = 0.1
-            logger.info("=> Task accumulated, skip: %s", msg)
+            if msg:
+                logger.info("=> Task accumulated, skip: %s", msg)
             mode, msg = tasks.get()
             time.sleep(delay)
             continue
@@ -50,11 +52,13 @@ def run_haproxy():
 
 class Haproxy(object):
     cls_linked_services = set()
-    cls_swarm_networks = []
+    cls_linked_tasks = set()
     cls_cfg = None
     cls_process = None
     cls_certs = []
     cls_ca_certs = []
+    cls_nets = set()
+    cls_service_id = ""
 
     def __init__(self, running_mode=RunningMode.LegacyMode):
         logger.info("==========BEGIN==========")
@@ -114,8 +118,10 @@ class Haproxy(object):
             logger.info("Docker API error, regressing to legacy links mode: %s" % e)
             return None
         haproxy_container_id = os.environ.get("HOSTNAME", "")
-        links, Haproxy.cls_linked_services, Haproxy.cls_swarm_networks = SwarmModeLinkHelper.get_swarm_mode_links(
-            docker, haproxy_container_id)
+        Haproxy.cls_service_id, Haproxy.cls_nets = SwarmModeLinkHelper.get_swarm_mode_haproxy_id_nets(docker,
+                                                                                                      haproxy_container_id)
+        links, Haproxy.cls_linked_tasks = SwarmModeLinkHelper.get_swarm_mode_links(docker, Haproxy.cls_service_id,
+                                                                                   Haproxy.cls_nets)
         logger.info("Linked service: %s", ", ".join(SwarmModeLinkHelper.get_service_links_str(links)))
         logger.info("Linked container: %s", ", ".join(SwarmModeLinkHelper.get_container_links_str(links)))
         return links

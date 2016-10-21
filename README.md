@@ -57,11 +57,17 @@ That's it - the haproxy container will start querying Docker Cloud's API for an 
 
 Docker 1.12 supports SwarmMode natively. `dockercloud/haproxy` will auto config itself to load balance all the services running on the same network:
 
-1. Create a new network using `docker create` command
+1. Create a new network using `docker network create -d overlay <name>` command
 
-2. Launch `dockercloud/haproxy` service on that network
+2. Launch `dockercloud/haproxy` service on that network on manager nodes.
 
 3. Launch your application services that need to be load balanced on the same network.
+
+    **Note**
+    - You **HAVE TO** set the environment variable `SERVICE_PORTS=<port1>, <port2>` in your application service, which are the ports you would like to expose.
+    - For `dockercloud/haproxy` service:
+      If you mount `/var/run/docker.sock`, it can only be run on swarm manager nodes.
+      If you want the haproxy service to run on worker nodes, you need to setup DOCKER_HOST envvar that points to the manager address.
 
 * If your application services need to access other services(database, for example), you can attach your application services to two different network, one is for database and the other one for the proxy
 * This feature is still experimental, please let us know if you find any bugs or have any suggestions.
@@ -69,8 +75,8 @@ Docker 1.12 supports SwarmMode natively. `dockercloud/haproxy` will auto config 
 #### example of docker swarm mode support
 
     docker network create -d overlay proxy
-    docker service create --name haproxy --network proxy --mount target=/var/run/docker.sock,source=/var/run/docker.sock,type=bind -p 80:80 dockercloud/haproxy
-    docker service create --name app --network proxy dockercloud/hello-world
+    docker service create --name haproxy --network proxy --mount target=/var/run/docker.sock,source=/var/run/docker.sock,type=bind -p 80:80 --constraint "node.role == manager" dockercloud/haproxy
+    docker service create -e SERVICE_PORTS="80" --name app --network proxy --constraint "node.role != manager" dockercloud/hello-world
     docker service scale app=2
     docker service update --env-add VIRTUAL_HOST=web.org app
 
@@ -243,6 +249,7 @@ Settings here can overwrite the settings in HAProxy, which are only applied to t
 |TCP_PORTS|comma separated ports(e.g. 9000, 9001, 2222/ssl). The port listed in `TCP_PORTS` will be load-balanced in TCP mode. Port ends with `/ssl` indicates that port needs SSL termination.
 |VIRTUAL_HOST_WEIGHT|an integer of the weight of an virtual host, used together with `VIRTUAL_HOST`, default:0. It affects the order of acl rules of the virtual hosts. The higher weight one virtual host has, the more priority that acl rules applies.|
 |VIRTUAL_HOST|specify virtual host and virtual path. Format: `[scheme://]domain[:port][/path], ...`. wildcard `*` can be used in `domain` and `path` part|
+|SERVICE_PORTS|comma separated ports(e.g. 80, 8080), which are the ports you would like to expose in your application service. This envvar is swarm mode only, and it is **MUST** be set in swarm mode|
 
 Check [the HAProxy configuration manual](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html) for more information on the above.
 

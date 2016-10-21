@@ -65,6 +65,7 @@ STATS_AUTH = os.getenv("STATS_AUTH", "stats:stats")
 STATS_PORT = os.getenv("STATS_PORT", "1936")
 TIMEOUT = os.getenv("TIMEOUT", "connect 5000, client 50000, server 50000")
 NBPROC = int(os.getenv("NBPROC", 1))
+SWARM_MODE_POLLING_INTERVAL = int(os.getenv("SWARM_MODE_POLLING_INTERVAL", 5))
 
 # global
 RUNNING_MODE = None
@@ -76,6 +77,7 @@ HAPROXY_CONFIG_FILE = "/haproxy.cfg"
 HAPROXY_RUN_COMMAND = ['/usr/sbin/haproxy', '-f', HAPROXY_CONFIG_FILE, '-db', '-q']
 API_RETRY = 10  # seconds
 PID_FILE = "/tmp/dockercloud-haproxy.pid"
+SERVICE_PORTS_ENVVAR_NAME = "SERVICE_PORTS"
 
 # regular expressions
 SERVICE_NAME_MATCH = re.compile(r"(.+)_\d+$")

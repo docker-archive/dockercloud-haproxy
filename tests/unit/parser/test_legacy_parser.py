@@ -116,7 +116,7 @@ class SpecsTestCase(unittest.TestCase):
                    }
 
         routes = {'WORLD': [{'container_name': 'WORLD_1', 'proto': 'tcp', 'port': '80', 'addr': '10.7.0.3'}],
-                  'HELLO': [{'container_name': 'HELLO_1', 'proto': 'tcp', 'port': '80', 'addr': '10.7.0.1',}],
+                  'HELLO': [{'container_name': 'HELLO_1', 'proto': 'tcp', 'port': '80', 'addr': '10.7.0.1', }],
                   'DUPLICATED': [{'container_name': 'DUPLICATED', 'proto': 'tcp', 'port': '80', 'addr': '10.7.0.1'}]}
         self.assertEqual(routes, specs._parse_routes(details, envvars))
 

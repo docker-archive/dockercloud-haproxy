@@ -1,70 +1,88 @@
 import logging
+
 import compose_mode_link_helper
+from haproxy.config import SERVICE_PORTS_ENVVAR_NAME
 
 logger = logging.getLogger("haproxy")
 
 
-def get_swarm_mode_links(docker, haproxy_container_short_id):
+def get_swarm_mode_haproxy_id_nets(docker, haproxy_container_short_id):
     try:
         haproxy_container = docker.inspect_container(haproxy_container_short_id)
     except Exception as e:
         logger.info("Docker API error, regressing to legacy links mode: %s" % e)
-        return {}, set()
+        return "", set()
     labels = haproxy_container.get("Config", {}).get("Labels", {})
-    service_id = labels.get("com.docker.swarm.node.id", "")
-    service_name = labels.get("com.docker.swarm.service.name", "")
-    task_id = labels.get("com.docker.swarm.task.id", "")
-    task_name = labels.get("com.docker.swarm.task.name", "")
-    if not (service_id and service_name and task_id and task_name):
+    haproxy_service_id = labels.get("com.docker.swarm.service.id", "")
+    if not haproxy_service_id:
         logger.info("Dockercloud haproxy is not running in a service in SwarmMode")
-        return {}, set()
+        return "", set()
 
-    nets = haproxy_container.get("NetworkSettings", {}).get("Networks", {})
-    net_ids = [network.get("NetworkID", "") for network in nets.values()]
+    haproxy_nets = set([network.get("NetworkID", "") for network in
+                        haproxy_container.get("NetworkSettings", {}).get("Networks", {}).values()])
 
-    linked_containers_ids = []
-    for net_id in net_ids:
-        network_inspect = docker.inspect_network(net_id)
-        linked_containers_ids.extend(network_inspect.get("Containers", {}).keys())
-
-    linked_containers = {}
-    for linked_containers_id in linked_containers_ids:
-        try:
-            linked_container = docker.inspect_container(linked_containers_id)
-        except Exception as e:
-            logger.info("Docker API error: %s" % e)
-            continue
-        if linked_container.get("Config", {}).get("Labels", {}).get("com.docker.swarm.service.name",
-                                                                    "") != service_name:
-            linked_containers[linked_containers_id] = linked_container
-
-    links, services = _calc_links(linked_containers)
-    return links, services, net_ids
+    return haproxy_service_id, haproxy_nets
 
 
-def _calc_links(containers):
+def get_swarm_mode_links(docker, haproxy_service_id, haproxy_nets):
+    services = docker.services()
+    tasks = docker.tasks(filters={"desired-state": "running"})
+    links, linked_tasks = get_task_links(tasks, services, haproxy_service_id, haproxy_nets)
+    return links, linked_tasks
+
+
+def get_task_links(tasks, services, haproxy_service_id, haproxy_nets):
+    services_id_name = {s.get("ID"): s.get("Spec", {}).get("Name", "") for s in services}
     links = {}
-    services = set()
-    for container_id, container in containers.items():
-        container_name = container.get("Name").lstrip("/")
-        service_name = container.get("Config", {}).get("Labels", {}).get("com.docker.swarm.service.name", "")
-        container_evvvars = get_container_envvars(container)
-        endpoints = get_container_endpoints(container, container_name)
-        links[container_id] = {"service_name": service_name,
-                               "container_envvars": container_evvvars,
-                               "container_name": container_name,
-                               "endpoints": endpoints,
-                               }
-        services.add(service_name)
-    return links, services
+    linked_tasks = set()
+    for task in tasks:
+        task_nets = [network.get("Network", {}).get("ID", "") for network in task.get("NetworksAttachments", [])]
+        task_service_id = task.get("ServiceID", "")
+        task_nets_attached = haproxy_nets.intersection(set(task_nets))
+        if task_service_id != haproxy_service_id and task_nets_attached:
+            task_id = task.get("ID", "")
+            task_slot = "%d" % task.get("Slot", 0)
+            task_service_id = task.get("ServiceID", "")
+            task_service_name = services_id_name.get(task_service_id, "")
+            container_name = ".".join([task_service_name, task_slot, task_id])
+            task_envvars = get_task_envvars(task.get("Spec", {}).get("ContainerSpec", {}).get("Env", []))
+
+            service_ports = ""
+            for task_envvar in task_envvars:
+                if task_envvar["key"] == SERVICE_PORTS_ENVVAR_NAME:
+                    service_ports = task_envvar["value"]
+            task_ports = [x.strip() for x in service_ports.strip().split(",") if x.strip()]
+
+            task_ips = []
+            for network_attachment in task.get("NetworksAttachments", []):
+                if network_attachment.get("Network", {}).get("ID", "") in task_nets_attached:
+                    task_ips = network_attachment.get("Addresses", [])
+                    break
+
+            if task_ips:
+                task_ip = task_ips[0].split("/")[0]
+            else:
+                task_ip = container_name
+
+            task_endpoints = {"%s/tcp" % port: "tcp://%s:%s" % (task_ip, port) for port in task_ports}
+
+            links[task_id] = {"endpoints": task_endpoints, "container_name": container_name,
+                              "service_name": task_service_name, "container_envvars": task_envvars}
+            linked_tasks.add(task_id)
+    return links, linked_tasks
 
 
-def get_container_endpoints(container, container_name):
-    return compose_mode_link_helper.get_container_endpoints(container, container_name)
-
-
-def get_container_envvars(container):
-    return compose_mode_link_helper.get_container_envvars(container)
+def get_task_envvars(envvars):
+    new_envvars = []
+    for _envvar in envvars:
+        terms = _envvar.split("=", 1)
+        envvar = {"key": terms[0]}
+        if len(terms) == 2:
+            envvar["value"] = terms[1]
+        else:
+            envvar["value"] = ""
+        new_envvars.append(envvar)
+    return new_envvars
 
 
 def get_service_links_str(links):
