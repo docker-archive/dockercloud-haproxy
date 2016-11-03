@@ -32,8 +32,23 @@ def parse_extra_frontend_settings(envvars):
                     settings_dict[port] = settings
     return settings_dict
 
+def parse_additional_backend_settings(envvars):
+    settings_dict = {}
+    if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
+        frontend_settings_pattern = re.compile(r"^ADDITIONAL_BACKEND_(\w{1,9})$")
+        for k, v in envvars.iteritems():
+            match = frontend_settings_pattern.match(k)
+            if match:
+                server = match.group(1)
+                settings = [x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())]
+                if server in settings_dict:
+                    settings_dict[server].extend(settings)
+                else:
+                    settings_dict[server] = settings
+    return settings_dict
 
 # envvar
+ADDITIONAL_BACKENDS = parse_additional_backend_settings(os.environ)
 ADDITIONAL_SERVICES = os.getenv("ADDITIONAL_SERVICES")
 API_AUTH = os.getenv("DOCKERCLOUD_AUTH")
 BALANCE = os.getenv("BALANCE", "roundrobin")
@@ -48,6 +63,7 @@ EXTRA_FRONTEND_SETTINGS = parse_extra_frontend_settings(os.environ)
 EXTRA_GLOBAL_SETTINGS = os.getenv("EXTRA_GLOBAL_SETTINGS")
 EXTRA_SSL_CERT = os.getenv("EXTRA_SSL_CERTS")
 EXTRA_ROUTE_SETTINGS = os.getenv("EXTRA_ROUTE_SETTINGS", "")
+FORCE_DEFAULT_BACKEND = os.getenv("FORCE_DEFAULT_BACKEND", "True")
 HAPROXY_CONTAINER_URI = os.getenv("DOCKERCLOUD_CONTAINER_API_URI")
 HAPROXY_SERVICE_URI = os.getenv("DOCKERCLOUD_SERVICE_API_URI")
 HEALTH_CHECK = os.getenv("HEALTH_CHECK", "check inter 2000 rise 2 fall 3")

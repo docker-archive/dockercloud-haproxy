@@ -18,6 +18,7 @@ def get_backend_section(details, routes, vhosts, service_alias, routes_added):
     route_setting = " ".join([route_health_check, extra_route_settings]).strip()
     backend_routes = get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias)
     backend.extend(backend_routes)
+
     return backend
 
 
@@ -43,7 +44,6 @@ def get_backend_routes(route_setting, is_sticky, routes, routes_added, service_a
                     backend_routes.append(" ".join(backend_route))
 
     return sorted(backend_routes)
-
 
 def get_route_health_check(details, service_alias, default_health_check):
     health_check = get_service_attribute(details, "health_check", service_alias)
