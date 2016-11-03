@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from haproxy.config import EXTRA_BIND_SETTINGS, EXTRA_FRONTEND_SETTINGS, MONITOR_URI, MONITOR_PORT, MAXCONN, \
-    SKIP_FORWARDED_PROTO
+    SKIP_FORWARDED_PROTO, FORCE_DEFAULT_BACKEND
 
 
 def check_require_default_route(routes, routes_added):
@@ -152,7 +152,9 @@ def config_default_frontend(ssl_bind_string):
     if "80" in EXTRA_FRONTEND_SETTINGS:
         frontend.extend(EXTRA_FRONTEND_SETTINGS["80"])
 
-    frontend.append("default_backend default_service")
+    if "True" in FORCE_DEFAULT_BACKEND:
+        frontend.append("default_backend default_service")
+
     cfg["frontend default_port_80"] = frontend
 
     if ssl_bind_string:
@@ -171,7 +173,9 @@ def config_default_frontend(ssl_bind_string):
         if "443" in EXTRA_FRONTEND_SETTINGS:
             ssl_frontend.extend(EXTRA_FRONTEND_SETTINGS["443"])
 
-        ssl_frontend.append("default_backend default_service")
+        if "True" in FORCE_DEFAULT_BACKEND:
+            ssl_frontend.append("default_backend default_service")
+
         cfg["frontend default_port_443"] = ssl_frontend
 
     return cfg, monitor_uri_configured
