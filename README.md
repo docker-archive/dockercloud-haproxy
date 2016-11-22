@@ -255,6 +255,24 @@ Settings here can overwrite the settings in HAProxy, which are only applied to t
 
 Check [the HAProxy configuration manual](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html) for more information on the above.
 
+##### example of stackfile in Docker Cloud with settings in linked application:
+
+	web:
+	  image: 'dockercloud/hello-world:latest'
+	  target_num_containers: 2
+	  environment:
+            - TCP_PORTS=443
+            - EXCLUDE_PORTS=22
+	lb:
+	  image: 'dockercloud/haproxy:latest'
+	  links:
+	    - web
+	  ports:
+	    - '80:80'
+	  roles:
+	    - global
+
+
 ## Virtual host and virtual path
 
 Both virtual host and virtual path can be specified in environment variable `VIRTUAL_HOST`, which is a set of comma separated urls with the format of `[scheme://]domain[:port][/path]`.
