@@ -11,5 +11,5 @@ requests==2.7.0
 six==1.9.0
 websocket-client==0.37.0
 docker-compose==1.6.0
-python-dockercloud==1.0.5
+python-dockercloud==1.0.9
 gevent==1.1.1
