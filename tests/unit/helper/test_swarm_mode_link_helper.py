@@ -913,7 +913,8 @@ expected_links = expected_links = {
     u'31b6fuwub6dcgdrvy0kivxvug': {'service_name': u'app', 'endpoints': {u'80/tcp': u'tcp://10.0.0.7:80'},
                                    'container_envvars': [{'value': u'80', 'key': u'SERVICE_PORTS'}],
                                    'container_name': u'app.3.31b6fuwub6dcgdrvy0kivxvug'}}
-expected_linked_tasks = {u'7y45xdhy929wzcq94wqdqb8d3', u'bbref0yvjbix87pv6xz1jc3pr', u'31b6fuwub6dcgdrvy0kivxvug'}
+expected_linked_tasks = {u'7y45xdhy929wzcq94wqdqb8d3':{}, u'bbref0yvjbix87pv6xz1jc3pr':{},
+                         u'31b6fuwub6dcgdrvy0kivxvug':{}}
 expected_nets = {"b951j4at14qali5nxevshec93", "0l130ctu8xay6vfft1mb4tjv0"}
 expected_service_id = "07ql4q5a48seh1uhcr2m7ngar"
 
@@ -944,7 +945,6 @@ class SWARMModeLinkHelperTestCase(unittest.TestCase):
 
             def tasks(self, filters):
                 return [t for t in tasks if t.get("DesiredState", "") == "running"]
-
         links, linked_tasks = get_swarm_mode_links(Docker(), expected_service_id, expected_nets)
         self.assertEquals(expected_links, links)
         self.assertEquals(expected_linked_tasks, linked_tasks)

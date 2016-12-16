@@ -1,7 +1,7 @@
 import logging
 
 import compose_mode_link_helper
-from haproxy.config import SERVICE_PORTS_ENVVAR_NAME
+from haproxy.config import SERVICE_PORTS_ENVVAR_NAME, LABEL_SWARM_MODE_DEACTIVATE
 
 logger = logging.getLogger("haproxy")
 
@@ -27,14 +27,14 @@ def get_swarm_mode_haproxy_id_nets(docker, haproxy_container_short_id):
 def get_swarm_mode_links(docker, haproxy_service_id, haproxy_nets):
     services = docker.services()
     tasks = docker.tasks(filters={"desired-state": "running"})
-    links, linked_tasks = get_task_links(tasks, services, haproxy_service_id, haproxy_nets)
-    return links, linked_tasks
+    return get_task_links(tasks, services, haproxy_service_id, haproxy_nets)
 
 
 def get_task_links(tasks, services, haproxy_service_id, haproxy_nets):
     services_id_name = {s.get("ID"): s.get("Spec", {}).get("Name", "") for s in services}
+    services_id_labels = {s.get("ID"): s.get("Spec", {}).get("Labels", {}) for s in services}
     links = {}
-    linked_tasks = set()
+    linked_tasks = {}
     for task in tasks:
         task_nets = [network.get("Network", {}).get("ID", "") for network in task.get("NetworksAttachments", [])]
         task_service_id = task.get("ServiceID", "")
@@ -44,6 +44,11 @@ def get_task_links(tasks, services, haproxy_service_id, haproxy_nets):
             task_slot = "%d" % task.get("Slot", 0)
             task_service_id = task.get("ServiceID", "")
             task_service_name = services_id_name.get(task_service_id, "")
+            task_labels = services_id_labels.get(task_service_id)
+
+            if task_labels.get(LABEL_SWARM_MODE_DEACTIVATE, "").lower() == "true":
+                continue
+
             container_name = ".".join([task_service_name, task_slot, task_id])
             task_envvars = get_task_envvars(task.get("Spec", {}).get("ContainerSpec", {}).get("Env", []))
 
@@ -68,7 +73,7 @@ def get_task_links(tasks, services, haproxy_service_id, haproxy_nets):
 
             links[task_id] = {"endpoints": task_endpoints, "container_name": container_name,
                               "service_name": task_service_name, "container_envvars": task_envvars}
-            linked_tasks.add(task_id)
+            linked_tasks[task_id] = task_labels
     return links, linked_tasks
 
 

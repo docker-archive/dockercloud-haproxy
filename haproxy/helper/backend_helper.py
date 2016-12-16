@@ -45,6 +45,7 @@ def get_backend_routes(route_setting, is_sticky, routes, routes_added, service_a
 
     return sorted(backend_routes)
 
+
 def get_route_health_check(details, service_alias, default_health_check):
     health_check = get_service_attribute(details, "health_check", service_alias)
     health_check = health_check if health_check else default_health_check

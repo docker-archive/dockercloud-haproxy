@@ -9,6 +9,7 @@ from docker.errors import APIError
 
 import config
 import helper.cloud_mode_link_helper
+import helper.swarm_mode_link_helper as SwarmModeLinkHelper
 from haproxycfg import add_haproxy_run_task, Haproxy
 from utils import get_uuid_from_resource_uri
 
@@ -106,17 +107,11 @@ def polling_service_status_swarm_mode():
             except:
                 docker = docker_client(os.environ)
 
+            services = docker.services()
             tasks = docker.tasks(filters={"desired-state": "running"})
-            linked_tasks = set()
-            for task in tasks:
-                task_nets = [network.get("Network", {}).get("ID", "") for network in
-                             task.get("NetworksAttachments", [])]
-                task_service_id = task.get("ServiceID", "")
-                if task_service_id != Haproxy.cls_service_id and Haproxy.cls_nets.intersection(set(task_nets)):
-                    task_id = task.get("ID", "")
-                    linked_tasks.add(task_id)
-
-            if Haproxy.cls_linked_tasks != linked_tasks:
+            _, linked_tasks = SwarmModeLinkHelper.get_task_links(tasks, services, Haproxy.cls_service_id,
+                                                                 Haproxy.cls_nets)
+            if cmp(Haproxy.cls_linked_tasks, linked_tasks) != 0:
                 add_haproxy_run_task("Tasks are updated")
         except APIError as e:
             logger.info("Docker API error: %s" % e)
