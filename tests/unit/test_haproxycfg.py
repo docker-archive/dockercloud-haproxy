@@ -153,18 +153,23 @@ class HaproxyConfigSSLTestCase(unittest.TestCase):
 
 class HaproxyConfigUserListTestCase(unittest.TestCase):
     def test_config_userlist_section(self):
-        self.assertEqual({}, Haproxy._config_userlist_section(""))
+        self.assertEqual({}, Haproxy._config_userlist_section("", ""))
+        self.assertEqual({'userlist haproxy_userlist': ['user user password hash']},
+                         Haproxy._config_userlist_section("", "user:hash"))
         self.assertEqual({'userlist haproxy_userlist': ['user user insecure-password pass']},
-                         Haproxy._config_userlist_section("user:pass"))
+                         Haproxy._config_userlist_section("user:pass", ""))
+        self.assertEqual(OrderedDict([('userlist haproxy_userlist', ['user user1 insecure-password pass1',
+                                                                     'user user2 password hash2'])]),
+                         Haproxy._config_userlist_section("user1:pass1", "user2:hash2"))
         self.assertEqual(OrderedDict([('userlist haproxy_userlist', ['user user1 insecure-password pass1',
                                                                      'user user2 insecure-password pass2',
                                                                      'user user3 insecure-password pass3'])]),
-                         Haproxy._config_userlist_section("user1:pass1, user2:pass2  ,user3:pass3"))
+                         Haproxy._config_userlist_section("user1:pass1, user2:pass2  ,user3:pass3", ""))
 
         self.assertEqual(OrderedDict([('userlist haproxy_userlist', ['user us,er1 insecure-password pass,1',
                                                                      'user user2 insecure-password ',
                                                                      'user  insecure-password pass3'])]),
-                         Haproxy._config_userlist_section("us\,er1:pass\,1, user2:, :pass3"))
+                         Haproxy._config_userlist_section("us\,er1:pass\,1, user2:, :pass3", ""))
 
     @mock.patch.object(Specs, 'get_routes')
     @mock.patch.object(Specs, 'get_service_aliases')

@@ -163,7 +163,7 @@ class Haproxy(object):
             cfg_dict.update(self._config_global_section())
             cfg_dict.update(self._config_defaults_section())
             cfg_dict.update(self._config_stats_section())
-            cfg_dict.update(self._config_userlist_section(HTTP_BASIC_AUTH))
+            cfg_dict.update(self._config_userlist_section(HTTP_BASIC_AUTH, HTTP_BASIC_AUTH_SECURE))
             cfg_dict.update(self._config_tcp_sections())
             cfg_dict.update(self._config_frontend_sections())
             cfg_dict.update(self._config_backend_sections())
@@ -290,10 +290,10 @@ class Haproxy(object):
         return cfg
 
     @staticmethod
-    def _config_userlist_section(basic_auth):
-        cfg = OrderedDict()
-        if basic_auth:
-            auth_list = re.split(r'(?<!\\),', basic_auth)
+    def _parse_userlist(auth_section, type):
+        userlist = []
+        if auth_section:
+            auth_list = re.split(r'(?<!\\),', auth_section)
             userlist = []
             for auth in auth_list:
                 if auth.strip():
@@ -301,10 +301,16 @@ class Haproxy(object):
                     if len(terms) == 2:
                         username = terms[0].replace("\,", ",")
                         password = terms[1].replace("\,", ",")
-                        userlist.append("user %s insecure-password %s" % (username, password))
+                        userlist.append("user %s %s %s" % (username, type, password))
+        return userlist
 
-            if userlist:
-                cfg["userlist haproxy_userlist"] = userlist
+    @staticmethod
+    def _config_userlist_section(basic_auth, basic_auth_secure):
+        cfg = OrderedDict()
+        userlist = Haproxy._parse_userlist(basic_auth, "insecure-password") + \
+                   Haproxy._parse_userlist(basic_auth_secure, "password")
+        if userlist:
+            cfg["userlist haproxy_userlist"] = userlist
         return cfg
 
     def _config_tcp_sections(self):

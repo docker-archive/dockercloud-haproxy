@@ -1,0 +1,44 @@
+FROM alpine:3.4
+
+RUN echo PyYAML==3.11 > requirements.txt && \
+    echo cached-property==1.2.0 >> requirements.txt && \
+    echo docker-py==1.10.3 >> requirements.txt && \
+    echo dockerpty==0.4.1 >> requirements.txt && \
+    echo docopt==0.6.1 >> requirements.txt && \
+    venum34==1.0.4 >> requirements.txt && \
+    echo jsonschema==2.5.1 >> requirements.txt && \
+    vtexttable==0.8.4 >> requirements.txt && \
+    echo future==0.15.0 >> requirements.txt && \
+    echo requests==2.7.0 >> requirements.txt && \
+    echo six==1.9.0 >> requirements.txt && \
+    echo websocket-client==0.37.0 >> requirements.txt && \
+    echo docker-compose==1.6.0 >> requirements.txt && \
+    echo python-dockercloud==1.0.5 >> requirements.txt && \
+    echo gevent==1.1.1 >> requirements.txt
+
+RUN apk update && \
+    apk --no-cache add tini haproxy py-pip build-base python-dev ca-certificates && \
+    pip install -r requirements.txt
+
+ENV RSYSLOG_DESTINATION=127.0.0.1 \
+    MODE=http \
+    BALANCE=roundrobin \
+    MAXCONN=4096 \
+    OPTION="redispatch, httplog, dontlognull, forwardfor" \
+    TIMEOUT="connect 5000, client 50000, server 50000" \
+    STATS_PORT=1936 \
+    STATS_AUTH="stats:stats" \
+    SSL_BIND_OPTIONS=no-sslv3 \
+    SSL_BIND_CIPHERS="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:DHE-DSS-AES128-SHA:DES-CBC3-SHA" \
+    HEALTH_CHECK="check inter 2000 rise 2 fall 3" \
+    NBPROC=1
+
+COPY . /haproxy-src
+RUN cp /haproxy-src/reload.sh /reload.sh && \
+    cd /haproxy-src && \
+    pip install .
+
+
+EXPOSE 80 443 1936
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["dockercloud-haproxy"]

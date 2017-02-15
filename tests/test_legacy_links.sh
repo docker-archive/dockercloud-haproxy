@@ -413,6 +413,15 @@ curl -I --resolve web-a.com:80:${DOCKER_HOST_IP} http://web-a.com 2>&1 | grep -i
 curl --resolve web-a.org:80:${DOCKER_HOST_IP} http://web-a.org 2>&1 | grep -iF "My hostname is web-a" > /dev/null
 echo
 
+echo "=> Testing Basic Auth and EXCLUDE_BASIC_AUTH"
+rm_container web-a web-b lb
+docker run -d --name web-a -e HOSTNAME=web-a -e VIRTUAL_HOST=web-a.org dockercloud/hello-world
+docker run -d --name web-b -e HOSTNAME=web-b -e VIRTUAL_HOST=web-b.org -e EXCLUDE_BASIC_AUTH=true dockercloud/hello-world
+docker run -d --name lb --link web-a:web-a --link web-b:web-b -e HTTP_BASIC_AUTH=abc:abc -p 80:80 haproxy
+wait_for_startup http://${DOCKER_HOST_IP}
+curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} http://web-a.org 2>&1 | grep -iF "401 Unauthorized"
+curl -sSfL --resolve web-a.org:80:${DOCKER_HOST_IP} -u abc:abc http://web-a.org 2>&1 | grep -iF "My hostname is web-a"
+curl -sSfL --resolve web-b.org:80:${DOCKER_HOST_IP} http://web-b.org 2>&1 | grep -iF "My hostname is web-b"
 echo "=> Clean up"
 cleanup
 echo "=> Done!"

@@ -16,13 +16,13 @@ def get_backend_section(details, routes, vhosts, service_alias, routes_added):
     route_health_check = get_route_health_check(details, service_alias, HEALTH_CHECK)
     extra_route_settings = get_extra_route_settings(details, service_alias, EXTRA_ROUTE_SETTINGS)
     route_setting = " ".join([route_health_check, extra_route_settings]).strip()
-    backend_routes = get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias)
+    backend_routes = get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias, details)
     backend.extend(backend_routes)
 
     return backend
 
 
-def get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias):
+def get_backend_routes(route_setting, is_sticky, routes, routes_added, service_alias, details):
     backend_routes = []
     for _service_alias, routes in routes.iteritems():
         if not service_alias or _service_alias == service_alias:
@@ -40,6 +40,9 @@ def get_backend_routes(route_setting, is_sticky, routes, routes_added, service_a
 
                     if route_setting:
                         backend_route.append(route_setting)
+
+                    if details.get(service_alias, {}).get('failover', False):
+                        backend_route.append("backup")
 
                     backend_routes.append(" ".join(backend_route))
 
@@ -80,7 +83,7 @@ def get_backend_settings(details, service_alias, basic_auth):
     backend_settings.extend(get_hsts_max_age_setting(details, service_alias))
     backend_settings.extend(get_options_setting(details, service_alias))
     backend_settings.extend(get_extra_settings_setting(details, service_alias))
-    backend_settings.extend(get_basic_auth_setting(basic_auth))
+    backend_settings.extend(get_basic_auth_setting(details, basic_auth, service_alias))
 
     return backend_settings, is_sticky
 
@@ -163,9 +166,11 @@ def get_extra_settings_setting(details, service_alias):
     return setting
 
 
-def get_basic_auth_setting(basic_auth):
+def get_basic_auth_setting(details, basic_auth, service_alias):
     setting = []
-    if basic_auth:
+    exclude_basic_auth = get_service_attribute(details, "exclude_basic_auth", service_alias)
+
+    if basic_auth and not exclude_basic_auth:
         setting.append("acl need_auth http_auth(haproxy_userlist)")
         setting.append("http-request auth realm haproxy_basic_auth if !need_auth")
     return setting
