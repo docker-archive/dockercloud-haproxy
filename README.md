@@ -340,7 +340,7 @@ To set SSL certificate, you can either:
 1. set `DEFAULT_SSL_CERT` in `dockercloud/haproxy`, or
 2. set `SSL_CERT` and/or `DEFAULT_SSL_CERT` in the application services linked to HAProxy
 
-The difference between `SSL_CERT` and `DEFAULT_SSL_CERT` is that, the multiple certificates specified by `SSL_CERT` are stored in as cert1.pem, cert2.pem, ..., whereas the one specified by `DEFAULT_SSL_CERT` is always stored as cert0.pem. In that case, HAProxy will use cert0.pem as the default certificate when there is no SNI match. However, when multiple `DEFAULT_SSL_CERTIFICATE` is provided, only one of the certificates can be stored as cert0.pem, others are discarded.
+The difference between `SSL_CERT` and `DEFAULT_SSL_CERT` is that, the multiple certificates specified by `SSL_CERT` are stored in as cert1.pem, cert2.pem, ..., whereas the one specified by `DEFAULT_SSL_CERT` is always stored as cert0.pem. In that case, HAProxy will use cert0.pem as the default certificate when there is no SNI match. However, when multiple `DEFAULT_SSL_CERT` is provided, only one of the certificates can be stored as cert0.pem, others are discarded.
 
 #### PEM Files
 The certificate specified in `dockercloud/haproxy` or in the linked application services is a pem file, containing a private key followed by a public certificate(private key must be put before the public certificate and any extra Authority certificates, order matters). You can run the following script to generate a self-signed certificate:
