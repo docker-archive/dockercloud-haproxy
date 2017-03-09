@@ -239,8 +239,8 @@ Settings here can overwrite the settings in HAProxy, which are only applied to t
 |BALANCE|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
 |COOKIE|sticky session option. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
 |DEFAULT_SSL_CERT|similar to SSL_CERT, but stores the pem file at `/certs/cert0.pem` as the default ssl certs. If multiple `DEFAULT_SSL_CERT` are specified in linked services and HAProxy, the behavior is undefined|
-|EXCLUDE_BASIC_AUTH|if set, the application by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
-|EXCLUDE_PORTS|if set(any value) and `HTTP_BASIC_AUTH` global setting is set, no basic auth will be applied to this service.|
+|EXCLUDE_PORTS|if set, the application by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
+|EXCLUDE_BASIC_AUTH|if set(any value) and `HTTP_BASIC_AUTH` global setting is set, no basic auth will be applied to this service.|
 |EXTRA_ROUTE_SETTINGS|a string which is append to the each backend route after the health check,possible value: "send-proxy"|
 |EXTRA_SETTINGS|comma-separated string of extra settings, and each part will be appended to either related backend section or listen session in the configuration file. To escape comma, use `\,`. Possible value: `balance source`|
 |FAILOVER|if set(any value), it configures this service to be run as HAProxy `backup` for other configured service(s) in this backend|
