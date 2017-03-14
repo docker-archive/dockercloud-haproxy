@@ -217,7 +217,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |HTTP_BASIC_AUTH_SECURE| |a comma-separated list of credentials(`<user>:<encrypted-pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. See:[HAProxy:user](https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#3.4-user) *Attention:* DO NOT rely on this for authentication in production|
 |MAXCONN|4096|sets the maximum per-process number of concurrent connections.|
 |MODE|http|mode of load balancing for HAProxy. Possible values include: `http`, `tcp`, `health`|
-|MONITOR_PORT| |the port number where monitor_uri should be added to. Use together with `MONTIOR_URI`. Possible value: `80`|
+|MONITOR_PORT| |the port number where monitor_uri should be added to. Use together with `MONITOR_URI`. Possible value: `80`|
 |MONITOR_URI| |the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|
 |OPTION|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|
 |RSYSLOG_DESTINATION|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|
