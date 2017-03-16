@@ -242,8 +242,8 @@ class Haproxy(object):
                       "log-send-hostname",
                       "maxconn %s" % MAXCONN,
                       "pidfile /var/run/haproxy.pid",
-                      "user haproxy",
-                      "group haproxy",
+                      "user %s" % HAPROXY_USER,
+                      "group %s" % HAPROXY_GROUP,
                       "daemon",
                       "stats socket /var/run/haproxy.stats level admin"]
 
