@@ -220,6 +220,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |MONITOR_PORT| |the port number where monitor_uri should be added to. Use together with `MONITOR_URI`. Possible value: `80`|
 |MONITOR_URI| |the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|
 |OPTION|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|
+|RELOAD_TIMEOUT|0| When haproxy is reconfigured, a new process starts and attaches to the TCP socket for new connections, leaving the old process to handle existing connections.  This timeout specifies how long the old process is permitted to continue running before being killed. <br/>  `-1`: Old process is killed immediately<br/>  `0`: No timeout, old process will run as long as TCP connections last.  This could potentially be quite a while as `http-keep-alives` are enabled which will keep TCP connections open.<br/>  `>0`: Timeout in secs after which the process will be killed.
 |RSYSLOG_DESTINATION|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|
 |SKIP_FORWARDED_PROTO||If set to any value, HAProxy will not add an X-Forwarded- headers. This can be used when combining HAProxy with another load balancer|
 |SSL_BIND_CIPHERS| |explicitly set which SSL ciphers will be used for the SSL server. This sets the HAProxy `ssl-default-bind-ciphers` configuration setting.|
