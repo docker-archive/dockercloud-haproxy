@@ -192,7 +192,7 @@ A second option is to use the `ADDITIONAL_SERVICES` variable for indentification
 
 ## Configuration
 
-### Global and default settings of HAProxy###
+### Global and default settings of HAProxy
 
 Settings in this part is immutable, you have to redeploy HAProxy service to make the changes take effects
 
@@ -231,7 +231,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |HAPROXY_USER|haproxy|sets the user of the UNIX sockets to the designated system user name|
 |HAPROXY_GROUP|haproxy|sets the group of the UNIX sockets to the designated system group name|
 
-### Settings in linked application services###
+### Settings in linked application services
 
 Settings here can overwrite the settings in HAProxy, which are only applied to the linked services. If run in Docker Cloud, when the service redeploys, joins or leaves HAProxy service, HAProxy service will automatically update itself to apply the changes
 
