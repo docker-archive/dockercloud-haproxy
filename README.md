@@ -15,180 +15,20 @@ The available version can be found here: https://hub.docker.com/r/dockercloud/ha
 
 ## Usage
 
-You can use `dockercloud/haproxy` in three different ways:
+You can use `dockercloud/haproxy` in 4 different scenarios:
 
-- running in Docker Cloud (Cloud Mode)
-- running with Docker legacy links (Legacy Mode)
-- running with Docker Compose v2 (Compose Mode, compatible with Docker Swarm)
-- running with Docker SwarmMode (Swarm Mode)
+- [Cloud Mode](docs/usage/cloudMode.md):
 
-### Running in Docker Cloud (Cloud Mode)
+Running `dockercloud/haproxy` in Docker Cloud *standard mode*. It can detect the service changes and reconfigure itself automatically by listening Docker Cloud stream events and querying DockerCloud API.
+- [Legacy Mode](docs/usage/legacyMode.md):
 
-1. Launch the service you want to load-balance using Docker Cloud.
+Running `dockercloud/haproxy` using Docker legacy links *(before docker v1.9.0)* with `docker run --link` flag or Docker Compose v1. In this mode, `dockercloud/haproxy` DOES NOT detecting the changes of underlying service. You have to redeploy the proxy container manually. 
+- [Compose Mode](docs/usage/composeMode.md):
 
-2. Launch the load balancer. To do this, select "Jumpstarts", "Proxies" and select `dockercloud/haproxy`. During the "Environment variables" step of the wizard, link to the service created earlier (the name of the link is not important), and add "Full Access" API role (this will allow HAProxy to be updated dynamically by querying Docker Cloud's API).
+Running with Docker Compose v2 *(since docker-compose 1.6)*, compatible with Docker Classic Swarm. Support auto self configuration by listening to docker events.
+- [Swarm Mode](docs/usage/swarmMode.md):
 
-	**Note**:
-	- If you are using `docker-cloud cli`, or `stackfile`, please set `roles` to `global`
-	- Please **DO NOT** set `sequential_deployment: true` on this image.
-
-That's it - the haproxy container will start querying Docker Cloud's API for an updated list of containers in the service and reconfigure itself automatically, including:
-
-* start/stop/terminate containers in the linked application services
-* start/stop/terminate/scale up/scale down/redeploy the linked application services
-* add new links to HAProxy
-* remove old links from HAProxy
-
-##### example of stackfile in Docker Cloud:
-
-	web:
-	  image: 'dockercloud/hello-world:latest'
-	  target_num_containers: 2
-	lb:
-	  image: 'dockercloud/haproxy:latest'
-	  links:
-	    - web
-	  ports:
-	    - '80:80'
-	  roles:
-	    - global
-
-### Running with Docker SwarmMode (Swarm Mode)
-
-Docker 1.12 supports SwarmMode natively. `dockercloud/haproxy` will auto config itself to load balance all the services running on the same network:
-
-1. Create a new network using `docker network create -d overlay <name>` command
-
-2. Launch `dockercloud/haproxy` service on that network on manager nodes.
-
-3. Launch your application services that need to be load balanced on the same network.
-
-    **Note**
-    - You **HAVE TO** set the environment variable `SERVICE_PORTS=<port1>, <port2>` in your application service, which are the ports you would like to expose.
-    - For `dockercloud/haproxy` service:
-      If you mount `/var/run/docker.sock`, it can only be run on swarm manager nodes.
-      If you want the haproxy service to run on worker nodes, you need to setup DOCKER_HOST envvar that points to the manager address.
-
-* If your application services need to access other services(database, for example), you can attach your application services to two different network, one is for database and the other one for the proxy
-* This feature is still experimental, please let us know if you find any bugs or have any suggestions.
-
-#### example of docker swarm mode support
-
-    docker network create -d overlay proxy
-    docker service create --name haproxy --network proxy --mount target=/var/run/docker.sock,source=/var/run/docker.sock,type=bind -p 80:80 --constraint "node.role == manager" dockercloud/haproxy
-    docker service create -e SERVICE_PORTS="80" --name app --network proxy --constraint "node.role != manager" dockercloud/hello-world
-    docker service scale app=2
-    docker service update --env-add VIRTUAL_HOST=web.org app
-
-### Running with Docker legacy links (Legacy Mode)
-
-Legacy link refers to the link created before docker 1.10, and the link created in default bridge network in docker 1.10 or after.
-
-##### example of legacy links using docker cli
-
-    docker run -d --name web1 dockercloud/hello-world
-    docker run -d --name web2 dockercloud/hello-world
-    docker run -d -p 80:80 --link web1:web1 --link web2:web2 dockercloud/haproxy
-
-#### example of docker-compose.yml v1 format:
-
-	web1:
-	  image: 'dockercloud/hello-world:latest'
-	web2:
-	  image: 'dockercloud/hello-world:latest'
-	lb:
-	  image: 'dockercloud/haproxy:latest'
-	  links:
-	    - web1
-	    - web2
-	  ports:
-	    - '80:80'
-
-**Note**: Any link alias sharing the same prefix and followed by "-/_" with an integer is considered to be from the same service. For example: `web-1` and `web-2` belong to service `web`, `app_1` and `app_2` are from service `app`, but `app1` and `web2` are from different services.
-
-
-### Running with Docker Compose v2 (Compose Mode)
-
-Docker Compose 1.6 supports a new format of the compose file. In the new version(v2), the old link that injects environment variables is deprecated.
-
-Similar to using legacy links, here list some differences that you need to notice:
-- This image must be run using Docker Compose, as it relies on the Docker Compose labels for configuration.
-- The container needs access to the docker socket, you must mount the correct files and set the related environment to make it work.
-- A link is required in order to ensure that dockercloud/haproxy is aware of which service it needs to balance, although links are not needed for service discovery since docker 1.10. Linked aliases are not required.
-- DO not overwrite `HOSTNAME` environment variable in `dockercloud/haproxy container`.
-- As it is the case on Docker Cloud, auto reconfiguration is supported when the linked services scales or/and the linked container starts/stops.
-- The container name is maintained by docker-compose, and used for service discovery as well. Please **DO NOT** change `container_name` of the linked service in the compose file to a non-standard name. Otherwise, that service will be ignored.
-
-##### example of docker-compose.yml running on Linux or Docker for Mac (beta):
-
-	version: '2'
-	services:
-	  web:
-	    image: dockercloud/hello-world
-	  lb:
-	    image: dockercloud/haproxy
-	    links:
-	      - web
-	    volumes:
-	      - /var/run/docker.sock:/var/run/docker.sock
-	    ports:
-	      - 80:80
-
-##### example of docker-compose.yml running on Mac OS
-
-	version: '2'
-	services:
-	  web:
-	    image: dockercloud/hello-world
-	  lb:
-	    image: dockercloud/haproxy
-	    links:
-	      - web
-	    environment:
-	      - DOCKER_TLS_VERIFY
-	      - DOCKER_HOST
-	      - DOCKER_CERT_PATH
-	    volumes:
-	      - $DOCKER_CERT_PATH:$DOCKER_CERT_PATH
-	    ports:
-	      - 80:80
-
-Once the stack is up, you can scale the web service using `docker-compose scale web=3`. dockercloud/haproxy will automatically reload its configuration.
-
-#### Running with Docker Compose v2 and Swarm (using envvar)
-When using links like previous section, the Docker Swarm scheduler can be too restrictive.
-Even with overlay network, swarm (As of 1.1.0) will attempt to schedule haproxy on the same node as the linked service due to legacy links behavior.
-This can cause unwanted scheduling patterns or errors such as "Unable to find a node fulfilling all dependencies..."
-
-Since Compose V2 allows discovery through the service names, Dockercloud haproxy only needs the links to indentify which service should be load balanced.
-
-A second option is to use the `ADDITIONAL_SERVICES` variable for indentification of services.
-
-- Set the `ADDITIONAL_SERVICES` env variable to your linked services.
-- You also want to set depends_on to ensure the web service is started before haproxy so that the hostname can be resolved. This controls scheduling order but not location.
-- The container still needs access to the docker daemon to get load balanced containers' configs.
-- If any trouble with haproxy not updating the config, try running reload.sh or set the `DEBUG` envvar.
-- This image is also compatible with Docker Swarm, and supports the docker native `overlay` network across multi-hosts.
-
-##### example of docker-compose.yml in 'project_dir' directory running in linux:
-
-	version: '2'
-	services:
-	  web:
-	    image: dockercloud/hello-world
-	  blog:
-	    image: dockercloud/hello-world
-	  lb:
-	    image: dockercloud/haproxy
-	    depends_on:
-	      - web
-	      - blog
-	    environment:
-	      - ADDITIONAL_SERVICES=project_dir:web,project_dir:blog
-	    volumes:
-	      - /var/run/docker.sock:/var/run/docker.sock
-	    ports:
-	      - 80:80
+Running with Docker Swarm Mode *(since docker v1.12)*, compatible with Docker Cloud *swarm mode*. Support auto self configuration by listening to docker events.
 
 ## Configuration
 
@@ -197,76 +37,76 @@ A second option is to use the `ADDITIONAL_SERVICES` variable for indentification
 Settings in this part is immutable, you have to redeploy HAProxy service to make the changes take effects
 
 |Environment Variable|Default|Description|
-|:-----:|:-----:|:----------|
-|ADDITIONAL_BACKEND_\<NAME\>| |add an additional backend with the name set in <NAME>. Possible values include:`balance source, server 127.0.0.1:8080`|
-|ADDITIONAL_BACKEND_FILE_\<NAME\>| add an additional backend with the name set in <NAME> and value of the contents of specified file.
-|ADDITIONAL_SERVICES| |list of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network resolvable and accessible to this containers.|
-|BALANCE|roundrobin|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
-|CA_CERT_FILE| |the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|
-|CA_CERT| |CA cert for haproxy to verify the client. Use the same format as `DEFAULT_SSL_CERT`|
-|CERT_FOLDER| |the path of certificates. This allows you to mount your certificate files directly from a volume instead of from envvars. If set, `DEFAULT_SSL_CERT` and `SSL_CERT` from linked services are ignored. Possible value:`/certs/`|
-|DEFAULT_SSL_CERT| |Default ssl cert, a pem file content with private key followed by public certificate, '\n'(two chars) as the line separator. should be formatted as one line - see [SSL Termination](#ssl-termination)|
-|EXTRA_BIND_SETTINGS| |comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible value: `443:accept-proxy, 80:name http`|
-|EXTRA_DEFAULT_SETTINGS| |comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
-|EXTRA_DEFAULT_SETTINGS_FILE|File whose contents will be included in the DEFAULT section of the configuration file.|
-|EXTRA_FRONTEND_SETTINGS_\<PORT\>| |comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|
-|EXTRA_DEFAULT_SETTINGS_FILE_\<PORT\>|File whose contents will be appended to the frontend section with the port number specified in the filename.|
-|EXTRA_GLOBAL_SETTINGS| |comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
-|EXTRA_GLOBAL_SETTINGS_FILE|File whose contents will be included in the GLOBAL section of the configuration file.|
-|EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|
-|EXTRA_SSL_CERTS| |list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
-|FORCE_DEFAULT_BACKEND| True | set the default_service as a default backend. This is useful when you have more than one backend and you don't want your default_service as a default backend    
-|HEALTH_CHECK|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
-|HTTP_BASIC_AUTH| |a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|
-|HTTP_BASIC_AUTH_SECURE| |a comma-separated list of credentials(`<user>:<encrypted-pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. See:[HAProxy:user](https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#3.4-user) *Attention:* DO NOT rely on this for authentication in production|
-|MAXCONN|4096|sets the maximum per-process number of concurrent connections.|
-|MODE|http|mode of load balancing for HAProxy. Possible values include: `http`, `tcp`, `health`|
-|MONITOR_PORT| |the port number where monitor_uri should be added to. Use together with `MONITOR_URI`. Possible value: `80`|
-|MONITOR_URI| |the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|
-|OPTION|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|
-|RELOAD_TIMEOUT|0| When haproxy is reconfigured, a new process starts and attaches to the TCP socket for new connections, leaving the old process to handle existing connections.  This timeout specifies how long the old process is permitted to continue running before being killed. <br/>  `-1`: Old process is killed immediately<br/>  `0`: No timeout, old process will run as long as TCP connections last.  This could potentially be quite a while as `http-keep-alives` are enabled which will keep TCP connections open.<br/>  `>0`: Timeout in secs after which the process will be killed.
-|RSYSLOG_DESTINATION|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|
-|SKIP_FORWARDED_PROTO||If set to any value, HAProxy will not add an X-Forwarded- headers. This can be used when combining HAProxy with another load balancer|
-|SSL_BIND_CIPHERS| |explicitly set which SSL ciphers will be used for the SSL server. This sets the HAProxy `ssl-default-bind-ciphers` configuration setting.|
-|SSL_BIND_OPTIONS|no-sslv3|explicitly set which SSL bind options will be used for the SSL server. This sets the HAProxy `ssl-default-bind-options` configuration setting. The default will allow only TLSv1.0+ to be used on the SSL server.|
-|STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|
-|STATS_PORT|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`
-|TIMEOUT|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|
-|NBPROC|1|sets the `nbproc` entry to the `global` section. By default, only one process is created, which is the recommended mode of operation.|
-|HAPROXY_USER|haproxy|sets the user of the UNIX sockets to the designated system user name|
-|HAPROXY_GROUP|haproxy|sets the group of the UNIX sockets to the designated system group name|
+|:-----|:-----:|:----------|
+|[ADDITIONAL_BACKEND_\<NAME\>](docs/settings/haproxy/additionalBackendName.md)|add an additional backend section with the name \<NAME>
+|[ADDITIONAL_BACKEND_FILE_\<NAME\>](docs/settings/haproxy/additionalBackendFileName.md)|add an additional backend section with the name \<NAME> from a file
+|[ADDITIONAL_SERVICES](docs/settings/haproxy/additionalServices.md)|add a list of services defined in another docker-compose project. ***Compose mode only***
+|[BALANCE](docs/settings/haproxy/balance.md)|the load balancing algorithm to use. Default: `roundrobin`
+|[CA_CERT](docs/settings/haproxy/caCert.md)|provide a CA Cert to make HAProxy to verify the client through environment variable|
+|[CA_CERT_FILE](docs/settings/haproxy/caCertFile.md)|the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|
+|[CERT_FOLDER](docs/settings/haproxy/certFolder.md)|the path of certificates. This allows you to mount your certificate files directly from a volume instead of from envvars. If set, `DEFAULT_SSL_CERT` and `SSL_CERT` from linked services are ignored. Possible value:`/certs/`|
+|[DEFAULT_SSL_CERT](docs/settings/haproxy/defaultSslCert.md)|Default ssl cert, a pem file content with private key followed by public certificate, '\n'(two chars) as the line separator. should be formatted as one line - see [SSL Termination](#ssl-termination)|
+|[EXTRA_BIND_SETTINGS](docs/settings/haproxy/extraBindSettings.md)|comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible value: `443:accept-proxy, 80:name http`|
+|[EXTRA_DEFAULT_SETTINGS](docs/settings/haproxy/extraDefaultSettings.md)|comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
+|[EXTRA_DEFAULT_SETTINGS_FILE](docs/settings/haproxy/extraDefaultSettingsFile.md)|File whose contents will be included in the DEFAULT section of the configuration file.|
+|[EXTRA_FRONTEND_SETTINGS_\<PORT\>](docs/settings/haproxy/extraFrontendSettingsPort.md)|comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|
+|[EXTRA_FRONTEND_SETTINGS_FILE_\<PORT\>](docs/settings/haproxy/extraFrontendSettingsFilePort.md)|File whose contents will be appended to the frontend section with the port number specified in the filename.|
+|[EXTRA_GLOBAL_SETTINGS](docs/settings/haproxy/extraGlobalSettings.md)|comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
+|[EXTRA_GLOBAL_SETTINGS_FILE](docs/settings/haproxy/extraGlobalSettingsFile.md)|File whose contents will be included in the GLOBAL section of the configuration file.|
+|[EXTRA_ROUTE_SETTINGS](docs/settings/haproxy/extraRouteSettings.md)|a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|
+|[EXTRA_SSL_CERTS](docs/settings/haproxy/extraSsslCerts.md)|list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
+|[FORCE_DEFAULT_BACKEND](docs/settings/haproxy/forceDefaultBackend.md)| True | set the default_service as a default backend. This is useful when you have more than one backend and you don't want your default_service as a default backend    
+|[HAPROXY_GROUP](docs/settings/haproxy/haproxyGroup.md)|haproxy|sets the group of the UNIX sockets to the designated system group name|
+|[HAPROXY_USER](docs/settings/haproxy/haproxyUser.md)|haproxy|sets the user of the UNIX sockets to the designated system user name|
+|[HEALTH_CHECK](docs/settings/haproxy/healthCheck.md)|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
+|[HTTP_BASIC_AUTH](docs/settings/haproxy/httpBasicAuth.md)|a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|
+|[HTTP_BASIC_AUTH_SECURE](docs/settings/haproxy/httpBasicAuthSecure.md)|a comma-separated list of credentials(`<user>:<encrypted-pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. See:[HAProxy:user](https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#3.4-user) *Attention:* DO NOT rely on this for authentication in production|
+|[MAXCONN](docs/settings/haproxy/maxconn.md)|4096|sets the maximum per-process number of concurrent connections.|
+|[MODE](docs/settings/haproxy/mode.md)|http|mode of load balancing for HAProxy. Possible values include: `http`, `tcp`, `health`|
+|[MONITOR_PORT](docs/settings/haproxy/monitorPort.md)|the port number where monitor_uri should be added to. Use together with `MONITOR_URI`. Possible value: `80`|
+|[MONITOR_URI](docs/settings/haproxy/monitorUri.md)|the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|
+|[NBPROC](docs/settings/haproxy/nbproc.md)|1|sets the `nbproc` entry to the `global` section. By default, only one process is created, which is the recommended mode of operation.|
+|[OPTION](docs/settings/haproxy/option.md)|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|
+|[RELOAD_TIMEOUT](docs/settings/haproxy/reloadTimeout.md)|0| When haproxy is reconfigured, a new process starts and attaches to the TCP socket for new connections, leaving the old process to handle existing connections.  This timeout specifies how long the old process is permitted to continue running before being killed. <br/>  `-1`: Old process is killed immediately<br/>  `0`: No timeout, old process will run as long as TCP connections last.  This could potentially be quite a while as `http-keep-alives` are enabled which will keep TCP connections open.<br/>  `>0`: Timeout in secs after which the process will be killed.
+|[RSYSLOG_DESTINATION](docs/settings/haproxy/rsyslogDestination.md)|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|
+|[SKIP_FORWARDED_PROTO](docs/settings/haproxy/skipForwardedProto.md)|If set to any value, HAProxy will not add an X-Forwarded- headers. This can be used when combining HAProxy with another load balancer|
+|[SSL_BIND_CIPHERS](docs/settings/haproxy/sslBindCiphers.md)| |explicitly set which SSL ciphers will be used for the SSL server. This sets the HAProxy `ssl-default-bind-ciphers` configuration setting.|
+|[SSL_BIND_OPTIONS](docs/settings/haproxy/sslBindOptions.md)|no-sslv3|explicitly set which SSL bind options will be used for the SSL server. This sets the HAProxy `ssl-default-bind-options` configuration setting. The default will allow only TLSv1.0+ to be used on the SSL server.|
+|[STATS_AUTH](docs/settings/haproxy/statsAuth.md)|stats:stats|username and password required to access the Haproxy stats.|
+|[STATS_PORT](docs/settings/haproxy/statsPort.md)|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`
+|[TIMEOUT](docs/settings/haproxy/timeout.md)|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|
 
 ### Settings in linked application services
 
 Settings here can overwrite the settings in HAProxy, which are only applied to the linked services. If run in Docker Cloud, when the service redeploys, joins or leaves HAProxy service, HAProxy service will automatically update itself to apply the changes
 
 |Environment Variable|Description|
-|:-----:|:----------|
-|BALANCE|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
-|COOKIE|sticky session option. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
-|DEFAULT_SSL_CERT|similar to SSL_CERT, but stores the pem file at `/certs/cert0.pem` as the default ssl certs. If multiple `DEFAULT_SSL_CERT` are specified in linked services and HAProxy, the behavior is undefined|
-|EXCLUDE_PORTS|if set, the application by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
-|EXCLUDE_BASIC_AUTH|if set(any value) and `HTTP_BASIC_AUTH` global setting is set, no basic auth will be applied to this service.|
-|EXTRA_ROUTE_SETTINGS|a string which is append to the each backend route after the health check,possible value: "send-proxy"|
-|EXTRA_SETTINGS|comma-separated string of extra settings, and each part will be appended to either related backend section or listen session in the configuration file. To escape comma, use `\,`. Possible value: `balance source`|
-|FAILOVER|if set(any value), it configures this service to be run as HAProxy `backup` for other configured service(s) in this backend|
-|FORCE_SSL|if set(any value) together with ssl termination enabled. HAProxy will redirect HTTP request to HTTPS request.
-|GZIP_COMPRESSION_TYPE|enable gzip compression. The value of this envvar is a list of MIME types that will be compressed. Some possible values: `text/html text/plain text/css application/javascript`. See:[HAProxy:compression](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-compression)|
-|HEALTH_CHECK|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
-|HSTS_MAX_AGE|enable HSTS. It is an integer representing the max age of HSTS in seconds, possible value: `31536000`|
-|HTTP_CHECK|enable HTTP protocol to check on the servers health, possible value: "OPTIONS * HTTP/1.1\r\nHost:\ www". See:[HAProxy:httpchk](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-option%20httpchk)|
-|OPTION|comma-separated list of HAProxy `option` entries. `option` specified here will be added to related backend or listen part, and overwrite the OPTION settings in the HAProxy container|
-|SSL_CERT|ssl cert, a pem file with private key followed by public certificate, '\n'(two chars) as the line separator|
-|TCP_PORTS|comma separated ports(e.g. 9000, 9001, 2222/ssl). The port listed in `TCP_PORTS` will be load-balanced in TCP mode. Port ends with `/ssl` indicates that port needs SSL termination.
-|VIRTUAL_HOST_WEIGHT|an integer of the weight of an virtual host, used together with `VIRTUAL_HOST`, default:0. It affects the order of acl rules of the virtual hosts. The higher weight one virtual host has, the more priority that acl rules applies.|
-|VIRTUAL_HOST|specify virtual host and virtual path. Format: `[scheme://]domain[:port][/path], ...`. wildcard `*` can be used in `domain` and `path` part|
+|:-----|:----------|
+|[BALANCE]()|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
+|[COOKIE]()|sticky session option. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
+|[DEFAULT_SSL_CERT]()|similar to SSL_CERT, but stores the pem file at `/certs/cert0.pem` as the default ssl certs. If multiple `DEFAULT_SSL_CERT` are specified in linked services and HAProxy, the behavior is undefined|
+|[EXCLUDE_PORTS]()|if set, the application by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
+|[EXCLUDE_BASIC_AUTH]()|if set(any value) and `HTTP_BASIC_AUTH` global setting is set, no basic auth will be applied to this service.|
+|[EXTRA_ROUTE_SETTINGS]()|a string which is append to the each backend route after the health check,possible value: "send-proxy"|
+|[EXTRA_SETTINGS]()|comma-separated string of extra settings, and each part will be appended to either related backend section or listen session in the configuration file. To escape comma, use `\,`. Possible value: `balance source`|
+|[FAILOVER]()|if set(any value), it configures this service to be run as HAProxy `backup` for other configured service(s) in this backend|
+|[FORCE_SSL]()|if set(any value) together with ssl termination enabled. HAProxy will redirect HTTP request to HTTPS request.
+|[GZIP_COMPRESSION_TYPE]()|enable gzip compression. The value of this envvar is a list of MIME types that will be compressed. Some possible values: `text/html text/plain text/css application/javascript`. See:[HAProxy:compression](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-compression)|
+|[HEALTH_CHECK]()|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
+|[HSTS_MAX_AGE]()|enable HSTS. It is an integer representing the max age of HSTS in seconds, possible value: `31536000`|
+|[HTTP_CHECK]()|enable HTTP protocol to check on the servers health, possible value: "OPTIONS * HTTP/1.1\r\nHost:\ www". See:[HAProxy:httpchk](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-option%20httpchk)|
+|[OPTION]()|comma-separated list of HAProxy `option` entries. `option` specified here will be added to related backend or listen part, and overwrite the OPTION settings in the HAProxy container|
+|[SSL_CERT]()|ssl cert, a pem file with private key followed by public certificate, '\n'(two chars) as the line separator|
+|[TCP_PORTS]()|comma separated ports(e.g. 9000, 9001, 2222/ssl). The port listed in `TCP_PORTS` will be load-balanced in TCP mode. Port ends with `/ssl` indicates that port needs SSL termination.
+|[VIRTUAL_HOST_WEIGHT]()|an integer of the weight of an virtual host, used together with `VIRTUAL_HOST`, default:0. It affects the order of acl rules of the virtual hosts. The higher weight one virtual host has, the more priority that acl rules applies.|
+|[VIRTUAL_HOST]()|specify virtual host and virtual path. Format: `[scheme://]domain[:port][/path], ...`. wildcard `*` can be used in `domain` and `path` part|
 
 Swarm Mode only settings:
 
 |Name|Type|Description|
-|:--:|:--:|:---------:|
-|SERVICE_PORTS|envvar|comma separated ports(e.g. 80, 8080), which are the ports you would like to expose in your application service. This envvar is swarm mode only, and it is **MUST** be set in swarm mode|
-|`com.docker.dockercloud.haproxy.deactivate=<true|false>`|label|when this label is set to true, haproxy will ignore the service. Could be useful for switching services on blue/green testing|
+|:---|:---:|:---------|
+|[SERVICE_PORTS]()|envvar|comma separated ports(e.g. 80, 8080), which are the ports you would like to expose in your application service. This envvar is swarm mode only, and it is **MUST** be set in swarm mode|
+|[com.docker.dockercloud.haproxy.deactivate=<true/false>`]()|label|when this label is set to true, haproxy will ignore the service. Could be useful for switching services on blue/green testing|
 
 
 Check [the HAProxy configuration manual](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html) for more information on the above.
@@ -296,39 +136,11 @@ Both virtual host and virtual path can be specified in environment variable `VIR
 |Item|Default|Description|
 |:---:|:-----:|:---------|
 |scheme|http|possible values: `http`, `https`, `wss`|
-|domain||virtual host. `*` can be used as the wildcard|
+|domain| |virtual host. `*` can be used as the wildcard|
 |port|80/433|port number of the virtual host. When the scheme is `https`  `wss`, the default port will be to `443`|
-|/path||virtual path, starts with `/`. `*` can be used as the wildcard|
+|/path| |virtual path, starts with `/`. `*` can be used as the wildcard|
 
-#### examples of matching
-
-|Virtual host|Match|Not match|
-|:-----------|:----|:--------|
-|http://example.com|example.com|www.example.com|
-|example.com|example.com|www.example.com|
-|example.com:90|example.com:90|example.com|
-|https://example.com|https://example.com|example.com|
-|https://example.com:444|https://example.com:444|https://example.com|
-|\*.example.com|www.example.com|example.com|
-|\*example.com|www.example.com, example.com, anotherexample.com|www.abc.com|
-|www.e\*e.com|www.example.com, www.exxe.com|www.axxa.com|
-|www.example.\*|www.example.com, www.example.org|example.com|
-|\*|any website with HTTP||
-|https://\*|any website with HTTPS||
-|\*/path|example.com/path, example.org/path?u=user|example.com/path/|
-|\*/path/|example.com/path/, example.org/path/?u=user|example.com/path, example.com/path/abc|
-|\*/path/\*|example.com/path/, example.org/path/abc|example.com/abc/path/
-|\*/\*/path/\*|example.com/path/, example.org/abc/path/, example.net/abc/path/123|example.com/path|
-|\*/\*.js|example.com/abc.js, example.org/path/abc.js|example.com/abc.css|
-|\*/\*.do/|example.com/abc.do/, example.org/path/abc.do/|example.com/abc.do|
-|\*/path/\*.php|example.com/path/abc.php|example/abc.php, example.com/root/abc.php|
-|\*.example.com/\*.jpg|www.example.com/abc.jpg, abc.example.com/123.jpg|example.com/abc.jpg|
-|\*/path, \*/path/|example.com/path, example.org/path/||
-|example.com:90, https://example.com|example.com:90, https://example.com||
-
-**Note**:
-1. The sequence of the acl rules generated based on VIRTUAL_HOST are random. In HAProxy, when an acl rule with a wide scope(e.g. *.example.com) is put before a rule with narrow scope(e.g. web.example.com), the narrow rule will never be reached. As a result, if the virtual hosts you set have overlapping scopes, you need to use `VIRTUAL_HOST_WEIGHT` to manually set the order of acl rules, namely, giving the narrow virtual host a higher weight than the wide one.
-2. Every service that has the same VIRTUAL_HOST environment variable setting will be considered and merged into one single service. It may be useful for some testing scenario.
+[**Here lists some examples of how the mapping works**](docs/vhosts/vhostExample.md)
 
 ## SSL termination
 
