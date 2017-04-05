@@ -256,7 +256,15 @@ class Haproxy(object):
         statements.extend(ConfigHelper.config_ssl_bind_options(SSL_BIND_OPTIONS))
         statements.extend(ConfigHelper.config_ssl_bind_ciphers(SSL_BIND_CIPHERS))
         statements.extend(ConfigHelper.config_extra_settings(EXTRA_GLOBAL_SETTINGS))
+        if EXTRA_GLOBAL_SETTINGS_FILE:
+            try:
+                with open(EXTRA_GLOBAL_SETTINGS_FILE) as file:
+                    for line in file:
+                        statements.append(line.strip())
+            except Exception as e:
+                logger.info("Error reading EXTRA_GLOBAL_SETTINGS_FILE at '%s', error %s" % (EXTRA_GLOBAL_SETTINGS_FILE, e))
         cfg["global"] = statements
+      
         return cfg
 
     @staticmethod
@@ -285,7 +293,13 @@ class Haproxy(object):
         statements.extend(ConfigHelper.config_option(OPTION))
         statements.extend(ConfigHelper.config_timeout(TIMEOUT))
         statements.extend(ConfigHelper.config_extra_settings(EXTRA_DEFAULT_SETTINGS))
-
+        if EXTRA_DEFAULT_SETTINGS_FILE:
+            try:
+                with open(EXTRA_DEFAULT_SETTINGS_FILE) as file:
+                    for line in file:
+                        statements.append(line.strip())
+            except Exception as e:
+                logger.info("Error reading EXTRA_DEFAULT_SETTINGS_FILE at '%s', error %s" % (EXTRA_DEFAULT_SETTINGS_FILE, e))
         cfg["defaults"] = statements
         return cfg
 

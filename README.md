@@ -199,6 +199,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |Environment Variable|Default|Description|
 |:-----:|:-----:|:----------|
 |ADDITIONAL_BACKEND_\<NAME\>| |add an additional backend with the name set in <NAME>. Possible values include:`balance source, server 127.0.0.1:8080`|
+|ADDITIONAL_BACKEND_FILE_\<NAME\>| add an additional backend with the name set in <NAME> and value of the contents of specified file.
 |ADDITIONAL_SERVICES| |list of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network resolvable and accessible to this containers.|
 |BALANCE|roundrobin|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
 |CA_CERT_FILE| |the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|
@@ -207,8 +208,11 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |DEFAULT_SSL_CERT| |Default ssl cert, a pem file content with private key followed by public certificate, '\n'(two chars) as the line separator. should be formatted as one line - see [SSL Termination](#ssl-termination)|
 |EXTRA_BIND_SETTINGS| |comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible value: `443:accept-proxy, 80:name http`|
 |EXTRA_DEFAULT_SETTINGS| |comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
+|EXTRA_DEFAULT_SETTINGS_FILE|File whose contents will be included in the DEFAULT section of the configuration file.|
 |EXTRA_FRONTEND_SETTINGS_\<PORT\>| |comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|
+|EXTRA_DEFAULT_SETTINGS_FILE_\<PORT\>|File whose contents will be appended to the frontend section with the port number specified in the filename.|
 |EXTRA_GLOBAL_SETTINGS| |comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
+|EXTRA_GLOBAL_SETTINGS_FILE|File whose contents will be included in the GLOBAL section of the configuration file.|
 |EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|
 |EXTRA_SSL_CERTS| |list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
 |FORCE_DEFAULT_BACKEND| True | set the default_service as a default backend. This is useful when you have more than one backend and you don't want your default_service as a default backend    
