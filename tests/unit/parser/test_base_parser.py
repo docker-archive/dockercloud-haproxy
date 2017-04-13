@@ -38,12 +38,12 @@ class SpecsTestCase(unittest.TestCase):
         details = {'WORLD': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': None,
                              'gzip_compression_type': None, 'http_check': None, 'virtual_host_weight': 0,
                              'health_check': None, 'cookie': None, 'virtual_host': 'a.com', 'force_ssl': None,
-                             'tcp_ports': [], 'balance': None, 'extra_settings': None, 'appsession': None,
+                             'tcp_ports': [], 'balance': None, 'extra_settings': None,
                              'option': []},
                    'HELLO': {'default_ssl_cert': '', 'ssl_cert': '', 'exclude_ports': [], 'hsts_max_age': None,
                              'gzip_compression_type': None, 'http_check': None, 'virtual_host_weight': 0,
                              'health_check': None, 'cookie': None, 'virtual_host': 'b.com', 'force_ssl': None,
-                             'tcp_ports': [], 'balance': None, 'extra_settings': None, 'appsession': None,
+                             'tcp_ports': [], 'balance': None, 'extra_settings': None,
                              'option': []}}
         vhosts = [{'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80', 'service_alias': 'WORLD'},
                   {'path': '', 'host': 'b.com', 'scheme': 'http', 'port': '80', 'service_alias': 'HELLO'}]
@@ -52,12 +52,12 @@ class SpecsTestCase(unittest.TestCase):
                       'gzip_compression_type': None, 'http_check': None, 'health_check': None, 'cookie': None,
                       'virtual_host': [{'path': '', 'host': 'a.com', 'scheme': 'http', 'port': '80'}],
                       'exclude_ports': [], 'force_ssl': None, 'tcp_ports': [], 'balance': None, 'extra_settings': None,
-                      'appsession': None, 'virtual_host_str': 'a.com', 'option': []},
+                      'virtual_host_str': 'a.com', 'option': []},
             'HELLO': {'default_ssl_cert': '', 'ssl_cert': '', 'virtual_host_weight': 0, 'hsts_max_age': None,
                       'gzip_compression_type': None, 'http_check': None, 'health_check': None, 'cookie': None,
                       'virtual_host': [{'path': '', 'host': 'b.com', 'scheme': 'http', 'port': '80'}],
                       'exclude_ports': [], 'force_ssl': None, 'tcp_ports': [], 'balance': None, 'extra_settings': None,
-                      'appsession': None, 'virtual_host_str': 'b.com', 'option': []}}
+                      'virtual_host_str': 'b.com', 'option': []}}
 
         specs = Specs()
         self.assertEqual([], specs._parse_vhosts({}))

@@ -1,5 +1,4 @@
 import copy
-import logging
 import time
 from collections import OrderedDict
 
@@ -262,9 +261,10 @@ class Haproxy(object):
                     for line in file:
                         statements.append(line.strip())
             except Exception as e:
-                logger.info("Error reading EXTRA_GLOBAL_SETTINGS_FILE at '%s', error %s" % (EXTRA_GLOBAL_SETTINGS_FILE, e))
+                logger.info(
+                    "Error reading EXTRA_GLOBAL_SETTINGS_FILE at '%s', error %s" % (EXTRA_GLOBAL_SETTINGS_FILE, e))
         cfg["global"] = statements
-      
+
         return cfg
 
     @staticmethod
@@ -299,7 +299,8 @@ class Haproxy(object):
                     for line in file:
                         statements.append(line.strip())
             except Exception as e:
-                logger.info("Error reading EXTRA_DEFAULT_SETTINGS_FILE at '%s', error %s" % (EXTRA_DEFAULT_SETTINGS_FILE, e))
+                logger.info(
+                    "Error reading EXTRA_DEFAULT_SETTINGS_FILE at '%s', error %s" % (EXTRA_DEFAULT_SETTINGS_FILE, e))
         cfg["defaults"] = statements
         return cfg
 

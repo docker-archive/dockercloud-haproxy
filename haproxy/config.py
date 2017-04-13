@@ -1,8 +1,9 @@
+import logging
 import os
 import re
-import logging
 
 logger = logging.getLogger("haproxy")
+
 
 class RunningMode():
     LegacyMode, ComposeMode, SwarmMode, CloudMode = range(4)
@@ -36,7 +37,7 @@ def parse_extra_frontend_settings(envvars):
                 try:
                     with open(v) as file:
                         for line in file:
-                          settings.append(line.strip())
+                            settings.append(line.strip())
                 except Exception as e:
                     logger.info("Error reading %s at '%s', error %s" % (k, v, e))
 
@@ -67,7 +68,7 @@ def parse_additional_backend_settings(envvars):
                         for line in file:
                             settings.append(line.strip())
                 except Exception as e:
-                  logger.info("Error reading %s at '%s', error %s" % (k, v, e))
+                    logger.info("Error reading %s at '%s', error %s" % (k, v, e))
 
             if len(settings) > 0:
                 if server in settings_dict:

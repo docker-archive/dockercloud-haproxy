@@ -45,7 +45,7 @@ def get_task_links(tasks, services, haproxy_service_id, haproxy_nets):
             task_slot = "%d" % task.get("Slot", 0)
             task_service_id = task.get("ServiceID", "")
             task_service_name = services_id_name.get(task_service_id, "")
-            task_labels = services_id_labels.get(task_service_id,{})
+            task_labels = services_id_labels.get(task_service_id, {})
 
             if task_labels.get(LABEL_SWARM_MODE_DEACTIVATE, "").lower() == "true":
                 continue

@@ -1,6 +1,6 @@
-import unittest
 import tempfile
-import time
+import unittest
+
 from haproxy.config import parse_extra_bind_settings, parse_extra_frontend_settings
 
 
@@ -22,7 +22,7 @@ class ParseExtraFrontendSettings(unittest.TestCase):
         tf = tempfile.NamedTemporaryFile();
         tf.write("reqadd file_header value99")
         tf.flush()
-        
+
         envvars = {"EXTRA_FRONTEND_SETTINGS_443": " reqadd header1 value1, reqadd header2 va\,lue2,"
                                                   "  reqadd header3 value3 ",
                    "EXTRA_FRONTEND_SETTINGS_FILE_443": tf.name,
@@ -30,12 +30,8 @@ class ParseExtraFrontendSettings(unittest.TestCase):
                    "EXTRA_FRONTEND_SETTINGS_8080": "",
                    "EXTRA_FRONTEND_SETTINGS_ABC": "reqadd header5",
                    "EXTRA_FRONTEND_SETTINGS_": "reqadd header6"}
-        settings = {"443": ["reqadd file_header value99","reqadd header1 value1", "reqadd header2 va,lue2", "reqadd header3 value3"],
+        settings = {"443": ["reqadd file_header value99", "reqadd header1 value1", "reqadd header2 va,lue2",
+                            "reqadd header3 value3"],
                     "80": ["reqadd header4"],
                     "8080": [""]}
         self.assertEqual(settings, parse_extra_frontend_settings(envvars))
-        
-
-
-
-   

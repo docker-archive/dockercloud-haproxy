@@ -100,11 +100,6 @@ def get_sticky_setting(details, service_alias):
     setting = []
     is_sticky = False
 
-    appsession = get_service_attribute(details, "appsession", service_alias)
-    if appsession:
-        setting.append("appsession %s" % appsession)
-        is_sticky = True
-
     cookie = get_service_attribute(details, "cookie", service_alias)
     if cookie:
         setting.append("cookie %s" % cookie)
