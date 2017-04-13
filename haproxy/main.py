@@ -23,6 +23,7 @@ from utils import save_to_file
 from config import RunningMode
 
 dockercloud.user_agent = "dockercloud-haproxy/%s" % __version__
+dockercloud.api_timeout = 15
 
 logger = logging.getLogger("haproxy")
 
