@@ -52,23 +52,24 @@ def parse_extra_frontend_settings(envvars):
 def parse_additional_backend_settings(envvars):
     settings_dict = {}
     if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
-        additional_backend_pattern = re.compile(r"^ADDITIONAL_BACKEND_(\w{1,9})$")
-        additional_backend_file_pattern = re.compile(r"^ADDITIONAL_BACKEND_FILE_(\w{1,9})$")
+        additional_backend_pattern = re.compile(r"^ADDITIONAL_BACKEND_(\w+)$")
+        additional_backend_file_pattern = re.compile(r"^ADDITIONAL_BACKEND_FILE_(\w+)$")
         for k, v in envvars.iteritems():
             settings = []
             match = additional_backend_pattern.match(k)
             file_match = additional_backend_file_pattern.match(k)
-            if match:
-                server = match.group(1)
-                settings.extend([x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())])
-            elif file_match:
+
+            if file_match:
                 server = file_match.group(1)
                 try:
-                    with open(v) as file:
-                        for line in file:
+                    with open(v) as f:
+                        for line in f:
                             settings.append(line.strip())
                 except Exception as e:
                     logger.info("Error reading %s at '%s', error %s" % (k, v, e))
+            elif match:
+                server = match.group(1)
+                settings.extend([x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())])
 
             if len(settings) > 0:
                 if server in settings_dict:
