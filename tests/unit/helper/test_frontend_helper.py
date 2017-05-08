@@ -168,8 +168,11 @@ class FrontendHelperTestCase(unittest.TestCase):
         mock_get_bind_string.return_value = ("9999", False)
         frontend_section, monitor_uri_configured = config_common_part("9999", "ssl crt /certs/", [])
         self.assertEqual(
-            ["bind :9999", 'reqadd X-Forwarded-Proto:\\ http', "acl is_websocket hdr(Upgrade) -i WebSocket",
-             "monitor-uri %s" % frontend_helper.MONITOR_URI],
+            ["bind :9999",
+             'reqadd X-Forwarded-Proto:\\ http',
+             'maxconn 55555',
+             "monitor-uri %s" % frontend_helper.MONITOR_URI,
+             "acl is_websocket hdr(Upgrade) -i WebSocket"],
             frontend_section)
         self.assertTrue(monitor_uri_configured)
 
@@ -283,11 +286,13 @@ class FrontendHelperTestCase(unittest.TestCase):
                                         'default_backend default_service'])]), cfg)
         self.assertTrue(monitor_uri_configured)
 
-        frontend_helper.EXTRA_FRONTEND_SETTINGS = {'80': ["reqadd header1 value1"], '443': ["reqadd header2 value2"]}
+        frontend_helper.EXTRA_FRONTEND_SETTINGS = OrderedDict()
+        frontend_helper.EXTRA_FRONTEND_SETTINGS['80'] = ["reqadd header1 value1"]
+        frontend_helper.EXTRA_FRONTEND_SETTINGS['443'] = ["reqadd header2 value2"]
         cfg, monitor_uri_configured = config_default_frontend("ssl crt /certs/")
         self.assertEqual(OrderedDict([('frontend default_port_80',
-                                       ['bind :80',
-                                        'reqadd X-Forwarded-Proto:\\ http',
+                                       ['bind :80 ssl crt /certs/',
+                                        'reqadd X-Forwarded-Proto:\\ https',
                                         'maxconn 55555',
                                         'reqadd header1 value1',
                                         'default_backend default_service']),
@@ -303,7 +308,7 @@ class FrontendHelperTestCase(unittest.TestCase):
         frontend_helper.SKIP_FORWARDED_PROTO = 'true'
         cfg, monitor_uri_configured = config_default_frontend("ssl crt /certs/")
         self.assertEqual(OrderedDict([('frontend default_port_80',
-                                       ['bind :80',
+                                       ['bind :80 ssl crt /certs/',
                                         'maxconn 55555',
                                         'reqadd header1 value1',
                                         'default_backend default_service']),
@@ -315,7 +320,31 @@ class FrontendHelperTestCase(unittest.TestCase):
                                         'default_backend default_service'])]), cfg)
         self.assertTrue(monitor_uri_configured)
 
-    def test_config_common_part_with_monitor_uri(self):
+        frontend_helper.SKIP_FORWARDED_PROTO = ""
+        frontend_helper.EXTRA_FRONTEND_SETTINGS = OrderedDict()
+        frontend_helper.EXTRA_FRONTEND_SETTINGS['2376'] = ["reqadd header1 value1"]
+        cfg, monitor_uri_configured = config_default_frontend("ssl crt /certs/")
+        self.assertEqual(OrderedDict([('frontend default_port_2376',
+                                       ['bind :2376 ssl crt /certs/',
+                                        'reqadd X-Forwarded-Proto:\\ https',
+                                        'maxconn 55555',
+                                        'reqadd header1 value1',
+                                        'default_backend default_service'])]), cfg)
+        self.assertFalse(monitor_uri_configured)
+
+        frontend_helper.SKIP_FORWARDED_PROTO = ""
+        frontend_helper.EXTRA_FRONTEND_SETTINGS = OrderedDict()
+        frontend_helper.EXTRA_FRONTEND_SETTINGS['2375'] = ["reqadd header1 value1"]
+        cfg, monitor_uri_configured = config_default_frontend("")
+        self.assertEqual(OrderedDict([('frontend default_port_2375',
+                                       ['bind :2375',
+                                        'reqadd X-Forwarded-Proto:\\ http',
+                                        'maxconn 55555',
+                                        'reqadd header1 value1',
+                                        'default_backend default_service'])]), cfg)
+        self.assertFalse(monitor_uri_configured)
+
+    def test_config_with_monitor_uri(self):
         self.assertEqual(OrderedDict(), config_monitor_frontend(True))
         self.assertEqual(OrderedDict([('frontend monitor', ['bind :9999', 'monitor-uri /ping'])]),
                          config_monitor_frontend(False))

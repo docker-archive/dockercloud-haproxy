@@ -373,11 +373,10 @@ class Haproxy(object):
                 port_str = "frontend port_%s" % port
                 if port_str in cfg:
                     del cfg[port_str]
-
         else:
             self.require_default_route = FrontendHelper.check_require_default_route(self.specs.get_routes(),
                                                                                     self.routes_added)
-            if self.require_default_route:
+            if self.require_default_route or EXTRA_FRONTEND_SETTINGS:
                 cfg, monitor_uri_configured = FrontendHelper.config_default_frontend(ssl_bind_string)
             else:
                 cfg = OrderedDict()
