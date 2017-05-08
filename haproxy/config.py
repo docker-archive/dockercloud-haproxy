@@ -1,5 +1,8 @@
+import logging
 import os
 import re
+
+logger = logging.getLogger("haproxy")
 
 
 class RunningMode():
@@ -21,11 +24,24 @@ def parse_extra_frontend_settings(envvars):
     settings_dict = {}
     if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
         frontend_settings_pattern = re.compile(r"^EXTRA_FRONTEND_SETTINGS_(\d{1,5})$")
+        frontend_settings_file_pattern = re.compile(r"^EXTRA_FRONTEND_SETTINGS_FILE_(\d{1,5})$")
         for k, v in envvars.iteritems():
+            settings = []
             match = frontend_settings_pattern.match(k)
+            file_match = frontend_settings_file_pattern.match(k)
             if match:
                 port = match.group(1)
-                settings = [x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())]
+                settings.extend([x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())])
+            elif file_match:
+                port = file_match.group(1)
+                try:
+                    with open(v) as file:
+                        for line in file:
+                            settings.append(line.strip())
+                except Exception as e:
+                    logger.info("Error reading %s at '%s', error %s" % (k, v, e))
+
+            if len(settings) > 0:
                 if port in settings_dict:
                     settings_dict[port].extend(settings)
                 else:
@@ -36,12 +52,26 @@ def parse_extra_frontend_settings(envvars):
 def parse_additional_backend_settings(envvars):
     settings_dict = {}
     if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
-        frontend_settings_pattern = re.compile(r"^ADDITIONAL_BACKEND_(\w{1,9})$")
+        additional_backend_pattern = re.compile(r"^ADDITIONAL_BACKEND_(\w+)$")
+        additional_backend_file_pattern = re.compile(r"^ADDITIONAL_BACKEND_FILE_(\w+)$")
         for k, v in envvars.iteritems():
-            match = frontend_settings_pattern.match(k)
-            if match:
+            settings = []
+            match = additional_backend_pattern.match(k)
+            file_match = additional_backend_file_pattern.match(k)
+
+            if file_match:
+                server = file_match.group(1)
+                try:
+                    with open(v) as f:
+                        for line in f:
+                            settings.append(line.strip())
+                except Exception as e:
+                    logger.info("Error reading %s at '%s', error %s" % (k, v, e))
+            elif match:
                 server = match.group(1)
-                settings = [x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())]
+                settings.extend([x.strip().replace("\,", ",") for x in re.split(r'(?<!\\),', v.strip())])
+
+            if len(settings) > 0:
                 if server in settings_dict:
                     settings_dict[server].extend(settings)
                 else:
@@ -61,8 +91,10 @@ DEFAULT_CA_CERT = os.getenv("CA_CERT")
 DEFAULT_SSL_CERT = os.getenv("DEFAULT_SSL_CERT") or os.getenv("SSL_CERT")
 EXTRA_BIND_SETTINGS = parse_extra_bind_settings(os.getenv("EXTRA_BIND_SETTINGS"))
 EXTRA_DEFAULT_SETTINGS = os.getenv("EXTRA_DEFAULT_SETTINGS")
+EXTRA_DEFAULT_SETTINGS_FILE = os.getenv("EXTRA_DEFAULT_SETTINGS_FILE")
 EXTRA_FRONTEND_SETTINGS = parse_extra_frontend_settings(os.environ)
 EXTRA_GLOBAL_SETTINGS = os.getenv("EXTRA_GLOBAL_SETTINGS")
+EXTRA_GLOBAL_SETTINGS_FILE = os.getenv("EXTRA_GLOBAL_SETTINGS_FILE")
 EXTRA_SSL_CERT = os.getenv("EXTRA_SSL_CERTS")
 EXTRA_ROUTE_SETTINGS = os.getenv("EXTRA_ROUTE_SETTINGS", "")
 FORCE_DEFAULT_BACKEND = os.getenv("FORCE_DEFAULT_BACKEND", "True")

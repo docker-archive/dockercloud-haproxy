@@ -115,33 +115,19 @@ class BackendHelperTestCase(unittest.TestCase):
         self.assertEqual([], get_balance_setting(details, 'web-d'))
 
     def test_sticky_setting(self):
-        details = {'web-a': {'appsession': 'appsession_a'},
-                   'web-b': {'cookie': 'cookie_b'},
-                   'web-c': {'appsession': 'appsession_c', 'cookie': 'cookie_c'},
-                   'web-d': {'attrD': 'valueD'},
-                   'web-e': {'appsession': '', 'cookie': ''}}
+        details = {'web-a': {'cookie': 'cookie_b'},
+                   'web-b': {'attrB': 'valueB'},
+                   'web-c': {'cookie': ''}}
 
         setting, is_sticky = get_sticky_setting(details, 'web-a')
-        self.assertEqual(['appsession appsession_a'], setting)
-        self.assertTrue(is_sticky)
-
-        setting, is_sticky = get_sticky_setting(details, 'web-b')
         self.assertEqual(['cookie cookie_b'], setting)
         self.assertTrue(is_sticky)
 
+        setting, is_sticky = get_sticky_setting(details, 'web-b')
+        self.assertEqual([], setting)
+        self.assertFalse(is_sticky)
+
         setting, is_sticky = get_sticky_setting(details, 'web-c')
-        self.assertEqual(['appsession appsession_c', 'cookie cookie_c'], setting)
-        self.assertTrue(is_sticky)
-
-        setting, is_sticky = get_sticky_setting(details, 'web-d')
-        self.assertEqual([], setting)
-        self.assertFalse(is_sticky)
-
-        setting, is_sticky = get_sticky_setting(details, 'web-e')
-        self.assertEqual([], setting)
-        self.assertFalse(is_sticky)
-
-        setting, is_sticky = get_sticky_setting(details, 'web-f')
         self.assertEqual([], setting)
         self.assertFalse(is_sticky)
 

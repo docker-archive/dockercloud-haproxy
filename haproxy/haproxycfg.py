@@ -1,5 +1,4 @@
 import copy
-import logging
 import time
 from collections import OrderedDict
 
@@ -256,7 +255,16 @@ class Haproxy(object):
         statements.extend(ConfigHelper.config_ssl_bind_options(SSL_BIND_OPTIONS))
         statements.extend(ConfigHelper.config_ssl_bind_ciphers(SSL_BIND_CIPHERS))
         statements.extend(ConfigHelper.config_extra_settings(EXTRA_GLOBAL_SETTINGS))
+        if EXTRA_GLOBAL_SETTINGS_FILE:
+            try:
+                with open(EXTRA_GLOBAL_SETTINGS_FILE) as file:
+                    for line in file:
+                        statements.append(line.strip())
+            except Exception as e:
+                logger.info(
+                    "Error reading EXTRA_GLOBAL_SETTINGS_FILE at '%s', error %s" % (EXTRA_GLOBAL_SETTINGS_FILE, e))
         cfg["global"] = statements
+
         return cfg
 
     @staticmethod
@@ -285,7 +293,14 @@ class Haproxy(object):
         statements.extend(ConfigHelper.config_option(OPTION))
         statements.extend(ConfigHelper.config_timeout(TIMEOUT))
         statements.extend(ConfigHelper.config_extra_settings(EXTRA_DEFAULT_SETTINGS))
-
+        if EXTRA_DEFAULT_SETTINGS_FILE:
+            try:
+                with open(EXTRA_DEFAULT_SETTINGS_FILE) as file:
+                    for line in file:
+                        statements.append(line.strip())
+            except Exception as e:
+                logger.info(
+                    "Error reading EXTRA_DEFAULT_SETTINGS_FILE at '%s', error %s" % (EXTRA_DEFAULT_SETTINGS_FILE, e))
         cfg["defaults"] = statements
         return cfg
 
@@ -358,11 +373,10 @@ class Haproxy(object):
                 port_str = "frontend port_%s" % port
                 if port_str in cfg:
                     del cfg[port_str]
-
         else:
             self.require_default_route = FrontendHelper.check_require_default_route(self.specs.get_routes(),
                                                                                     self.routes_added)
-            if self.require_default_route:
+            if self.require_default_route or EXTRA_FRONTEND_SETTINGS:
                 cfg, monitor_uri_configured = FrontendHelper.config_default_frontend(ssl_bind_string)
             else:
                 cfg = OrderedDict()

@@ -40,3 +40,4 @@ nosetests.xml
 .pydevproject
 .idea
 .DS_Store
+.vagrant/

@@ -134,10 +134,6 @@ class EnvParser(object):
         return value
 
     @staticmethod
-    def parse_appsession(value):
-        return value
-
-    @staticmethod
     def parse_balance(value):
         return value
 
