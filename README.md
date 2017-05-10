@@ -266,7 +266,7 @@ Swarm Mode only settings:
 |Name|Type|Description|
 |:--:|:--:|:---------:|
 |SERVICE_PORTS|envvar|comma separated ports(e.g. 80, 8080), which are the ports you would like to expose in your application service. This envvar is swarm mode only, and it is **MUST** be set in swarm mode|
-|`com.docker.dockercloud.haproxy.deactivate=<true|false>`|label|when this label is set to true, haproxy will ignore the service. Could be useful for switching services on blue/green testing|
+|`com.docker.dockercloud.haproxy.deactivate=<true\|false>`|label|when this label is set to true, haproxy will ignore the service. Could be useful for switching services on blue/green testing|
 
 
 Check [the HAProxy configuration manual](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html) for more information on the above.
