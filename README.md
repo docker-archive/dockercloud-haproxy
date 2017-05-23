@@ -243,7 +243,7 @@ Settings here can overwrite the settings in HAProxy, which are only applied to t
 |Environment Variable|Description|
 |:-----:|:----------|
 |BALANCE|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
-|COOKIE|sticky session option. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
+|COOKIE|sticky session option. This needs to be set on the application service, rather than the HAProxy service. Possible value `SRV insert indirect nocache`. See:[HAProxy:cookie](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-cookie)|
 |DEFAULT_SSL_CERT|similar to SSL_CERT, but stores the pem file at `/certs/cert0.pem` as the default ssl certs. If multiple `DEFAULT_SSL_CERT` are specified in linked services and HAProxy, the behavior is undefined|
 |EXCLUDE_PORTS|if set, the application by the application services to the backend routes. You can exclude the ports that you don't want to be routed, like database port|
 |EXCLUDE_BASIC_AUTH|if set(any value) and `HTTP_BASIC_AUTH` global setting is set, no basic auth will be applied to this service.|
