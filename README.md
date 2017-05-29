@@ -210,7 +210,7 @@ Settings in this part is immutable, you have to redeploy HAProxy service to make
 |EXTRA_DEFAULT_SETTINGS| |comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
 |EXTRA_DEFAULT_SETTINGS_FILE|File whose contents will be included in the DEFAULT section of the configuration file.|
 |EXTRA_FRONTEND_SETTINGS_\<PORT\>| |comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|
-|EXTRA_DEFAULT_SETTINGS_FILE_\<PORT\>|File whose contents will be appended to the frontend section with the port number specified in the filename.|
+|EXTRA_FRONTEND_SETTINGS_FILE_\<PORT\>|File whose contents will be appended to the frontend section with the port number specified in the filename.|
 |EXTRA_GLOBAL_SETTINGS| |comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
 |EXTRA_GLOBAL_SETTINGS_FILE|File whose contents will be included in the GLOBAL section of the configuration file.|
 |EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|
