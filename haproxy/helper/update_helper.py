@@ -2,6 +2,7 @@ import logging
 import subprocess
 import threading
 import time
+import errno
 
 from haproxy.config import HAPROXY_RUN_COMMAND, RELOAD_TIMEOUT
 
