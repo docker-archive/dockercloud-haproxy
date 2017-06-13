@@ -24,11 +24,19 @@ class UpdateHelperTestCase(unittest.TestCase):
 
         def terminate(self):
             self.terminated = True
+            
+        def communicate(self):
+            return ("", "")
 
         pass
 
     class Object(object):
-        pass
+      returncode = 0
+      
+      def communicate(self):
+        return ("", "")
+      
+      pass
 
     @mock.patch("haproxy.helper.update_helper.subprocess.Popen")
     def test_run_graceful_reload_within_timeout(self, mock_popen):

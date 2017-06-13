@@ -4,7 +4,7 @@ import threading
 import time
 import errno
 
-from haproxy.config import HAPROXY_RUN_COMMAND, RELOAD_TIMEOUT
+from haproxy.config import HAPROXY_RUN_COMMAND, RELOAD_TIMEOUT, HAPROXY_CONFIG_CHECK_COMMAND
 
 logger = logging.getLogger("haproxy")
 
@@ -22,6 +22,16 @@ logger = logging.getLogger("haproxy")
 #
 def run_reload(old_process, timeout=int(RELOAD_TIMEOUT)):
     if old_process:
+        p = subprocess.Popen(HAPROXY_CONFIG_CHECK_COMMAND, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = p.communicate()
+        return_code = p.returncode
+        if (return_code != 0):
+          logger.error("Config check failed. NOT reloading haproxy")
+          logger.error(output)
+          logger.error(err)
+          return
+        else:
+          logger.info("Config check passed")
         # Reload haproxy
         logger.info("Reloading HAProxy")
         if timeout == -1:
