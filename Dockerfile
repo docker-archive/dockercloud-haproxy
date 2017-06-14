@@ -1,4 +1,4 @@
-FROM alpine:3.4
+FROM alpine:3.6
 MAINTAINER Feng Honglin <hfeng@tutum.co>
 
 COPY . /haproxy-src

@@ -129,6 +129,7 @@ CERT_DIR = "/certs/"
 CACERT_DIR = "/cacerts/"
 HAPROXY_CONFIG_FILE = "/haproxy.cfg"
 HAPROXY_RUN_COMMAND = ['/usr/sbin/haproxy', '-f', HAPROXY_CONFIG_FILE, '-db', '-q']
+HAPROXY_CONFIG_CHECK_COMMAND = ['/usr/sbin/haproxy', '-c', '-f', HAPROXY_CONFIG_FILE]
 API_RETRY = 10  # seconds
 PID_FILE = "/tmp/dockercloud-haproxy.pid"
 SERVICE_PORTS_ENVVAR_NAME = "SERVICE_PORTS"
