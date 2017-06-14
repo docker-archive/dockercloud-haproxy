@@ -22,18 +22,17 @@ logger = logging.getLogger("haproxy")
 #
 def run_reload(old_process, timeout=int(RELOAD_TIMEOUT)):
     if old_process:
+        # Config check
         p = subprocess.Popen(HAPROXY_CONFIG_CHECK_COMMAND, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         output, err = p.communicate()
-        return_code = p.returncode
-        if (return_code != 0):
-            logger.error("Config check failed. NOT reloading haproxy")
-            logger.error(output)
-            logger.error(err)
-            return
+        if p.returncode != 0:
+            logger.error("Config check failed. NOT reloading haproxy: %s - %s" % (err, output))
+            return old_process
         else:
             logger.info("Config check passed")
-        # Reload haproxy
+
+        # Reload Haproxy
         logger.info("Reloading HAProxy")
         if timeout == -1:
             flag = "-st"
