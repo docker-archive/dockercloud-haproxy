@@ -23,8 +23,8 @@ def parse_extra_bind_settings(extra_bind_settings):
 def parse_extra_frontend_settings(envvars):
     settings_dict = {}
     if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
-        frontend_settings_pattern = re.compile(r"^EXTRA_FRONTEND_SETTINGS_(\d{1,5})$")
-        frontend_settings_file_pattern = re.compile(r"^EXTRA_FRONTEND_SETTINGS_FILE_(\d{1,5})$")
+        frontend_settings_pattern = re.compile(r"^EXTRA_FRONTEND_SETTINGS_(\d{1,5})" + VAR_EXTENSION + r"$")
+        frontend_settings_file_pattern = re.compile(r"^EXTRA_FRONTEND_SETTINGS_FILE_(\d{1,5})" + VAR_EXTENSION + r"$")
         for k, v in envvars.iteritems():
             settings = []
             match = frontend_settings_pattern.match(k)
@@ -78,10 +78,20 @@ def parse_additional_backend_settings(envvars):
                     settings_dict[server] = settings
     return settings_dict
 
+def getExtendedEnv(baseName, joinWith=',', envvars=os.environ, default=''):
+    toJoin = []
+    if isinstance(envvars, os._Environ) or isinstance(envvars, dict):
+        pattern = re.compile(r"^" + baseName + VAR_EXTENSION + r"$")
+        for k, v in envvars.iteritems():
+            if pattern.match(k):
+                toJoin.append(v.strip())
+    return joinWith.join(toJoin) or default
+
+VAR_EXTENSION = '(_[\w-]+)?' #This is pulled into other regular expressions.
 
 # envvar
 ADDITIONAL_BACKENDS = parse_additional_backend_settings(os.environ)
-ADDITIONAL_SERVICES = os.getenv("ADDITIONAL_SERVICES")
+ADDITIONAL_SERVICES = getExtendedEnv("ADDITIONAL_SERVICES")
 API_AUTH = os.getenv("DOCKERCLOUD_AUTH")
 BALANCE = os.getenv("BALANCE", "roundrobin")
 CA_CERT_FILE = os.getenv("CA_CERT_FILE")
@@ -89,25 +99,25 @@ CERT_FOLDER = os.getenv("CERT_FOLDER")
 DEBUG = os.getenv("DEBUG", False)
 DEFAULT_CA_CERT = os.getenv("CA_CERT")
 DEFAULT_SSL_CERT = os.getenv("DEFAULT_SSL_CERT") or os.getenv("SSL_CERT")
-EXTRA_BIND_SETTINGS = parse_extra_bind_settings(os.getenv("EXTRA_BIND_SETTINGS"))
-EXTRA_DEFAULT_SETTINGS = os.getenv("EXTRA_DEFAULT_SETTINGS")
+EXTRA_BIND_SETTINGS = parse_extra_bind_settings(getExtendedEnv("EXTRA_BIND_SETTINGS"))
+EXTRA_DEFAULT_SETTINGS = getExtendedEnv("EXTRA_DEFAULT_SETTINGS")
 EXTRA_DEFAULT_SETTINGS_FILE = os.getenv("EXTRA_DEFAULT_SETTINGS_FILE")
 EXTRA_FRONTEND_SETTINGS = parse_extra_frontend_settings(os.environ)
-EXTRA_GLOBAL_SETTINGS = os.getenv("EXTRA_GLOBAL_SETTINGS")
+EXTRA_GLOBAL_SETTINGS = getExtendedEnv("EXTRA_GLOBAL_SETTINGS")
 EXTRA_GLOBAL_SETTINGS_FILE = os.getenv("EXTRA_GLOBAL_SETTINGS_FILE")
-EXTRA_SSL_CERT = os.getenv("EXTRA_SSL_CERTS")
+EXTRA_SSL_CERT = getExtendedEnv("EXTRA_SSL_CERTS")
 EXTRA_ROUTE_SETTINGS = os.getenv("EXTRA_ROUTE_SETTINGS", "")
 FORCE_DEFAULT_BACKEND = os.getenv("FORCE_DEFAULT_BACKEND", "True")
 HAPROXY_CONTAINER_URI = os.getenv("DOCKERCLOUD_CONTAINER_API_URI")
 HAPROXY_SERVICE_URI = os.getenv("DOCKERCLOUD_SERVICE_API_URI")
 HEALTH_CHECK = os.getenv("HEALTH_CHECK", "check inter 2000 rise 2 fall 3")
-HTTP_BASIC_AUTH = os.getenv("HTTP_BASIC_AUTH")
-HTTP_BASIC_AUTH_SECURE = os.getenv("HTTP_BASIC_AUTH_SECURE")
+HTTP_BASIC_AUTH = getExtendedEnv("HTTP_BASIC_AUTH")
+HTTP_BASIC_AUTH_SECURE = getExtendedEnv("HTTP_BASIC_AUTH_SECURE")
 MAXCONN = os.getenv("MAXCONN", "4096")
 MODE = os.getenv("MODE", "http")
 MONITOR_PORT = os.getenv("MONITOR_PORT")
 MONITOR_URI = os.getenv("MONITOR_URI")
-OPTION = os.getenv("OPTION", "redispatch, httplog, dontlognull, forwardfor")
+OPTION = getExtendedEnv("OPTION", default="redispatch, httplog, dontlognull, forwardfor")
 RSYSLOG_DESTINATION = os.getenv("RSYSLOG_DESTINATION", "127.0.0.1")
 SKIP_FORWARDED_PROTO = os.getenv("SKIP_FORWARDED_PROTO")
 SSL_BIND_CIPHERS = os.getenv("SSL_BIND_CIPHERS")

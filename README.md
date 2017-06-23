@@ -194,47 +194,49 @@ A second option is to use the `ADDITIONAL_SERVICES` variable for indentification
 
 ### Global and default settings of HAProxy
 
-Settings in this part is immutable, you have to redeploy HAProxy service to make the changes take effects
+Settings in this part is immutable, you have to redeploy HAProxy service to make the changes take effects.
 
-|Environment Variable|Default|Description|
-|:-----:|:-----:|:----------|
-|ADDITIONAL_BACKEND_\<NAME\>| |add an additional backend with the name set in <NAME>. Possible values include:`balance source, server 127.0.0.1:8080`|
-|ADDITIONAL_BACKEND_FILE_\<NAME\>| add an additional backend with the name set in <NAME> and value of the contents of specified file.
-|ADDITIONAL_SERVICES| |list of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network resolvable and accessible to this containers.|
-|BALANCE|roundrobin|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|
-|CA_CERT_FILE| |the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|
-|CA_CERT| |CA cert for haproxy to verify the client. Use the same format as `DEFAULT_SSL_CERT`|
-|CERT_FOLDER| |the path of certificates. This allows you to mount your certificate files directly from a volume instead of from envvars. If set, `DEFAULT_SSL_CERT` and `SSL_CERT` from linked services are ignored. Possible value:`/certs/`|
-|DEFAULT_SSL_CERT| |Default ssl cert, a pem file content with private key followed by public certificate, '\n'(two chars) as the line separator. should be formatted as one line - see [SSL Termination](#ssl-termination)|
-|EXTRA_BIND_SETTINGS| |comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible value: `443:accept-proxy, 80:name http`|
-|EXTRA_DEFAULT_SETTINGS| |comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|
-|EXTRA_DEFAULT_SETTINGS_FILE|File whose contents will be included in the DEFAULT section of the configuration file.|
-|EXTRA_FRONTEND_SETTINGS_\<PORT\>| |comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|
-|EXTRA_FRONTEND_SETTINGS_FILE_\<PORT\>|File whose contents will be appended to the frontend section with the port number specified in the filename.|
-|EXTRA_GLOBAL_SETTINGS| |comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|
-|EXTRA_GLOBAL_SETTINGS_FILE|File whose contents will be included in the GLOBAL section of the configuration file.|
-|EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|
-|EXTRA_SSL_CERTS| |list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|
-|FORCE_DEFAULT_BACKEND| True | set the default_service as a default backend. This is useful when you have more than one backend and you don't want your default_service as a default backend    
-|HEALTH_CHECK|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|
-|HTTP_BASIC_AUTH| |a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|
-|HTTP_BASIC_AUTH_SECURE| |a comma-separated list of credentials(`<user>:<encrypted-pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. See:[HAProxy:user](https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#3.4-user) *Attention:* DO NOT rely on this for authentication in production|
-|MAXCONN|4096|sets the maximum per-process number of concurrent connections.|
-|MODE|http|mode of load balancing for HAProxy. Possible values include: `http`, `tcp`, `health`|
-|MONITOR_PORT| |the port number where monitor_uri should be added to. Use together with `MONITOR_URI`. Possible value: `80`|
-|MONITOR_URI| |the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|
-|OPTION|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|
-|RELOAD_TIMEOUT|0| When haproxy is reconfigured, a new process starts and attaches to the TCP socket for new connections, leaving the old process to handle existing connections.  This timeout specifies how long the old process is permitted to continue running before being killed. <br/>  `-1`: Old process is killed immediately<br/>  `0`: No timeout, old process will run as long as TCP connections last.  This could potentially be quite a while as `http-keep-alives` are enabled which will keep TCP connections open.<br/>  `>0`: Timeout in secs after which the process will be killed.
-|RSYSLOG_DESTINATION|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|
-|SKIP_FORWARDED_PROTO||If set to any value, HAProxy will not add an X-Forwarded- headers. This can be used when combining HAProxy with another load balancer|
-|SSL_BIND_CIPHERS| |explicitly set which SSL ciphers will be used for the SSL server. This sets the HAProxy `ssl-default-bind-ciphers` configuration setting.|
-|SSL_BIND_OPTIONS|no-sslv3|explicitly set which SSL bind options will be used for the SSL server. This sets the HAProxy `ssl-default-bind-options` configuration setting. The default will allow only TLSv1.0+ to be used on the SSL server.|
-|STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|
-|STATS_PORT|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`
-|TIMEOUT|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|
-|NBPROC|1|sets the `nbproc` entry to the `global` section. By default, only one process is created, which is the recommended mode of operation.|
-|HAPROXY_USER|haproxy|sets the user of the UNIX sockets to the designated system user name|
-|HAPROXY_GROUP|haproxy|sets the group of the UNIX sockets to the designated system group name|
+If the setting has a list as a value (e.g. `ADDITIONAL_SERVICES`), multipe environment variables with arbitrary alphanumeric prefixes are combined. For example, `ADDITIONAL_SERVICES_FOO: project:foo` and `ADDITIONAL_SERVICES_BAR: project:bar` would be equivilent to `ADDITIONAL_SERVICES: project:foo,project:bar`. This allows multiple sources of environment variables (e.g. docker-compose override files) to contribute to the configuration value.
+
+|Environment Variable|Default|Description|Multi?|
+|:-----:|:-----:|:----------|:--|
+|ADDITIONAL_BACKEND_\<NAME\>| |add an additional backend with the name set in <NAME>. Possible values include:`balance source, server 127.0.0.1:8080`|N|
+|ADDITIONAL_BACKEND_FILE_\<NAME\>| add an additional backend with the name set in <NAME> and value of the contents of specified file.||N|
+|ADDITIONAL_SERVICES| |list of additional services to balance (es: `prj1:web,prj2:sql`). Discovery will be based on `com.docker.compose.[project|service]` container labels. This environment variable only works on compose v2, and the referenced services must be on a network resolvable and accessible to this containers.|Y|
+|BALANCE|roundrobin|load balancing algorithm to use. Possible values include: `roundrobin`, `static-rr`, `source`, `leastconn`. See:[HAProxy:balance](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-balance)|N|
+|CA_CERT_FILE| |the path of a ca-cert file. This allows you to mount your ca-cert file directly from a volume instead of from envvar. If set, `CA_CERT` envvar will be ignored. Possible value: `/cacerts/cert0.pem`|N|
+|CA_CERT| |CA cert for haproxy to verify the client. Use the same format as `DEFAULT_SSL_CERT`|N|
+|CERT_FOLDER| |the path of certificates. This allows you to mount your certificate files directly from a volume instead of from envvars. If set, `DEFAULT_SSL_CERT` and `SSL_CERT` from linked services are ignored. Possible value:`/certs/`|N|
+|DEFAULT_SSL_CERT| |Default ssl cert, a pem file content with private key followed by public certificate, '\n'(two chars) as the line separator. should be formatted as one line - see [SSL Termination](#ssl-termination)|N|
+|EXTRA_BIND_SETTINGS| |comma-separated string(`<port>:<setting>`) of extra settings, and each part will be appended to the related port bind section in the configuration file. To escape comma, use `\,`. Possible value: `443:accept-proxy, 80:name http`|Y|
+|EXTRA_DEFAULT_SETTINGS| |comma-separated string of extra settings, and each part will be appended to DEFAULT section in the configuration file. To escape comma, use `\,`|Y|
+|EXTRA_DEFAULT_SETTINGS_FILE|File whose contents will be included in the DEFAULT section of the configuration file.||N|
+|EXTRA_FRONTEND_SETTINGS_\<PORT\>| |comma-separated string of extra settings, and each part will be appended frontend section with the port number specified in the name of the envvar. To escape comma, use `\,`. E.g. `EXTRA_FRONTEND_SETTINGS_80=balance source, maxconn 2000`|Y|
+|EXTRA_FRONTEND_SETTINGS_FILE_\<PORT\>|File whose contents will be appended to the frontend section with the port number specified in the filename.||Y|
+|EXTRA_GLOBAL_SETTINGS| |comma-separated string of extra settings, and each part will be appended to GLOBAL section in the configuration file. To escape comma, use `\,`. Possible value: `tune.ssl.cachesize 20000, tune.ssl.default-dh-param 2048`|Y|
+|EXTRA_GLOBAL_SETTINGS_FILE|File whose contents will be included in the GLOBAL section of the configuration file.||N|
+|EXTRA_ROUTE_SETTINGS| |a string which is append to the each backend route after the health check, can be over written in the linked services. Possible value: "send-proxy"|N|
+|EXTRA_SSL_CERTS| |list of extra certificate names separated by comma, eg. `CERT1, CERT2, CERT3`. You also need to specify each certificate as separate env variables like so: `CERT1="<cert-body1>"`, `CERT2="<cert-body2>"`, `CERT3="<cert-body3>"`|Y|
+|FORCE_DEFAULT_BACKEND| True | set the default_service as a default backend. This is useful when you have more than one backend and you don't want your default_service as a default backend    |N|
+|HEALTH_CHECK|check|set health check on each backend route, possible value: "check inter 2000 rise 2 fall 3". See:[HAProxy:check](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-check)|N|
+|HTTP_BASIC_AUTH| |a comma-separated list of credentials(`<user>:<pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. *Attention:* DO NOT rely on this for authentication in production|Y|
+|HTTP_BASIC_AUTH_SECURE| |a comma-separated list of credentials(`<user>:<encrypted-pass>`) for HTTP basic auth, which applies to all the backend routes. To escape comma, use `\,`. See:[HAProxy:user](https://cbonte.github.io/haproxy-dconv/1.5/configuration.html#3.4-user) *Attention:* DO NOT rely on this for authentication in production|Y|
+|MAXCONN|4096|sets the maximum per-process number of concurrent connections.|N|
+|MODE|http|mode of load balancing for HAProxy. Possible values include: `http`, `tcp`, `health`|N|
+|MONITOR_PORT| |the port number where monitor_uri should be added to. Use together with `MONITOR_URI`. Possible value: `80`|N|
+|MONITOR_URI| |the exact URI which we want to intercept to return HAProxy's health status instead of forwarding the request.See: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4-monitor-uri. Possible value: `/ping`|N|
+|OPTION|redispatch|comma-separated list of HAProxy `option` entries to the `default` section.|Y|
+|RELOAD_TIMEOUT|0| When haproxy is reconfigured, a new process starts and attaches to the TCP socket for new connections, leaving the old process to handle existing connections.  This timeout specifies how long the old process is permitted to continue running before being killed. <br/>  `-1`: Old process is killed immediately<br/>  `0`: No timeout, old process will run as long as TCP connections last.  This could potentially be quite a while as `http-keep-alives` are enabled which will keep TCP connections open.<br/>  `>0`: Timeout in secs after which the process will be killed.|N|
+|RSYSLOG_DESTINATION|127.0.0.1|the rsyslog destination to where HAProxy logs are sent|N|
+|SKIP_FORWARDED_PROTO||If set to any value, HAProxy will not add an X-Forwarded- headers. This can be used when combining HAProxy with another load balancer|N|
+|SSL_BIND_CIPHERS| |explicitly set which SSL ciphers will be used for the SSL server. This sets the HAProxy `ssl-default-bind-ciphers` configuration setting.|N|
+|SSL_BIND_OPTIONS|no-sslv3|explicitly set which SSL bind options will be used for the SSL server. This sets the HAProxy `ssl-default-bind-options` configuration setting. The default will allow only TLSv1.0+ to be used on the SSL server.|N|
+|STATS_AUTH|stats:stats|username and password required to access the Haproxy stats.|N|
+|STATS_PORT|1936|port for the HAProxy stats section. If this port is published, stats can be accessed at `http://<host-ip>:<STATS_PORT>/`|N|
+|TIMEOUT|connect 5000, client 50000, server 50000|comma-separated list of HAProxy `timeout` entries to the `default` section.|N|
+|NBPROC|1|sets the `nbproc` entry to the `global` section. By default, only one process is created, which is the recommended mode of operation.|N|
+|HAPROXY_USER|haproxy|sets the user of the UNIX sockets to the designated system user name|N|
+|HAPROXY_GROUP|haproxy|sets the group of the UNIX sockets to the designated system group name|N|
 
 ### Settings in linked application services
 

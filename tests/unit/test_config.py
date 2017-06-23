@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 
-from haproxy.config import parse_extra_bind_settings, parse_extra_frontend_settings
+from haproxy.config import parse_extra_bind_settings, parse_extra_frontend_settings, getExtendedEnv
 
 
 class ParseExtraBindSettings(unittest.TestCase):
@@ -35,3 +35,15 @@ class ParseExtraFrontendSettings(unittest.TestCase):
                     "80": ["reqadd header4"],
                     "8080": [""]}
         self.assertEqual(settings, parse_extra_frontend_settings(envvars))
+
+
+class GetExtendedEnv(unittest.TestCase):
+    def test_get_extended_env(self):
+        self.assertEqual('', getExtendedEnv('FOO', envvars={}))
+        self.assertEqual('baz', getExtendedEnv('FOO', envvars={}, default='baz'))
+        self.assertEqual('', getExtendedEnv('FOO', envvars={'BAR': 'bar'}))
+        self.assertEqual('foo', getExtendedEnv('FOO', envvars={'BAR': 'bar', 'FOO': 'foo'}))
+        self.assertEqual('foo A,foo B', getExtendedEnv('FOO', envvars={'BAR': 'bar', 'FOO_A': 'foo A', 'FOO_B': 'foo B'}))
+        self.assertEqual('foo B,foo', getExtendedEnv('FOO', envvars={'BAR': 'bar', 'FOO': 'foo', 'FOO_B': 'foo B'}))
+        self.assertEqual('foo B# foo', getExtendedEnv('FOO', envvars={'BAR': 'bar', 'FOO': 'foo', 'FOO_B': 'foo B'}, joinWith='# '))
+        self.assertEqual('foo A,foo B', getExtendedEnv('FOO', envvars={'BAR': 'bar', 'FOO_A': 'foo A', 'FOO_WEB-SERVICE_Number2': 'foo B'}))
